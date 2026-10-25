@@ -67,4 +67,20 @@ class LibraryRepositoryTest {
         assertNull(repo.observeDetail(id).first())
         assertEquals(0, repo.observeStats().first().watchEvents)
     }
+
+    @Test fun addFromTmdbIsIdempotentAndKeepsUserData() = runTest {
+        val d = TmdbDetail(
+            TmdbRef(MediaType.MOVIE, 42), "Fixture Film", null, "Plot", "/p.jpg", "/b.jpg", 2001, null, null, 95, null, null, null,
+            emptyList(), null, null, emptyList(), emptyList(), emptyList(), emptyList(), ExternalIds(imdb = "tt0000001"),
+        )
+        val id = repo.addFromTmdb(d, WatchStatus.PLANNING)
+        repo.setRating(id, 80)
+        assertEquals(id, repo.addFromTmdb(d.copy(title = "Renamed upstream"), WatchStatus.DROPPED))
+        val saved = repo.observeDetail(id).first()!!
+        assertEquals("Fixture Film", saved.title)
+        assertEquals(80, saved.rating)
+        assertEquals(WatchStatus.PLANNING, saved.status)
+        assertEquals("tt0000001", saved.imdbId)
+        assertEquals(id, repo.observeLibraryId(d.ref).first())
+    }
 }

@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import skywa1ker404.flickdocket.domain.LibraryItem
+import skywa1ker404.flickdocket.domain.WatchStatus
 import skywa1ker404.flickdocket.ui.theme.LocalReducedMotion
 import skywa1ker404.flickdocket.ui.theme.spatialSpec
 import androidx.compose.animation.core.FiniteAnimationSpec
@@ -67,25 +68,35 @@ fun PosterArt(title: String, modifier: Modifier = Modifier, corner: androidx.com
     }
 }
 
+/** Poster + title + subtitle. [status] is optional so the same tile serves the library and TMDB results. */
 @Composable
-fun PosterCard(item: LibraryItem, onClick: () -> Unit, scopes: SharedScopes?, modifier: Modifier = Modifier) {
-    val statusText = statusLabel(item.status)
+fun PosterTile(
+    title: String, subtitle: String, posterPath: String?, status: WatchStatus?,
+    onClick: () -> Unit, scopes: SharedScopes?, sharedKey: String?, modifier: Modifier = Modifier,
+) {
+    val description = if (status != null) "$title, ${statusLabel(status)}" else title
     val openLabel = stringResource(R.string.open_details)
     Column(
         modifier
             .clip(RoundedCornerShape(20.dp))
-            .semantics(mergeDescendants = true) { contentDescription = "${item.title}, $statusText" }
+            .semantics(mergeDescendants = true) { contentDescription = description }
             .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onClick),
     ) {
         Box {
-            PosterArt(item.title, Modifier.fillMaxWidth().aspectRatio(2f / 3f).posterSharedElement(posterKey(item.titleId), scopes))
-            StatusPill(item.status, Modifier.align(Alignment.BottomStart).padding(8.dp))
+            val art = Modifier.fillMaxWidth().aspectRatio(2f / 3f)
+            PosterImage(posterPath, title, if (sharedKey != null) art.posterSharedElement(sharedKey, scopes) else art)
+            if (status != null) StatusPill(status, Modifier.align(Alignment.BottomStart).padding(8.dp))
         }
         Spacer(Modifier.height(8.dp))
-        Text(item.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(
-            listOfNotNull(item.year?.toString(), item.rating?.let { "★ %.1f".format(it / 10f) }).joinToString(" · "),
-            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+@Composable
+fun PosterCard(item: LibraryItem, onClick: () -> Unit, scopes: SharedScopes?, modifier: Modifier = Modifier) {
+    PosterTile(
+        item.title, listOfNotNull(item.year?.toString(), item.rating?.let { "★ %.1f".format(it / 10f) }).joinToString(" · "),
+        item.posterPath, item.status, onClick, scopes, posterKey(item.titleId), modifier,
+    )
 }

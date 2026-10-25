@@ -4,7 +4,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import android.os.Build
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -14,6 +22,7 @@ import skywa1ker404.flickdocket.data.prefs.AppSettings
 import skywa1ker404.flickdocket.domain.*
 import skywa1ker404.flickdocket.ui.components.PillRow
 import skywa1ker404.flickdocket.ui.components.SectionHeader
+import skywa1ker404.flickdocket.ui.components.TmdbAttribution
 
 @Composable
 fun SettingsScreen(vm: SettingsViewModel, settings: AppSettings) {
@@ -32,7 +41,8 @@ fun SettingsScreen(vm: SettingsViewModel, settings: AppSettings) {
         Text(stringResource(R.string.motion_body), Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         SectionHeader(stringResource(R.string.providers))
-        PlannedProviders.forEach { p ->
+        TmdbCard(vm)
+        PlannedProviders.filter { it.id != ProviderId.TMDB }.forEach { p ->
             ListItem(
                 headlineContent = { Text(p.name) },
                 supportingContent = { Text(p.role) },
@@ -43,6 +53,43 @@ fun SettingsScreen(vm: SettingsViewModel, settings: AppSettings) {
 
         SectionHeader(stringResource(R.string.about))
         ListItem(headlineContent = { Text(stringResource(R.string.app_name)) }, supportingContent = { Text(stringResource(R.string.about_body)) })
+        TmdbAttribution()
+    }
+}
+
+@Composable
+private fun TmdbCard(vm: SettingsViewModel) {
+    val ui by vm.tmdb.collectAsStateWithLifecycle()
+    // Never saved to instance state: the secret must not end up in a Bundle.
+    var input by remember { mutableStateOf("") }
+    val statusText = stringResource(
+        when (ui.state) {
+            TmdbConnection.NOT_CONFIGURED -> R.string.tmdb_state_none
+            TmdbConnection.CHECKING -> R.string.tmdb_state_checking
+            TmdbConnection.CONNECTED -> R.string.tmdb_state_connected
+            TmdbConnection.INVALID_KEY -> R.string.tmdb_state_invalid
+            TmdbConnection.UNREACHABLE -> R.string.tmdb_state_unreachable
+            TmdbConnection.RATE_LIMITED -> R.string.tmdb_state_rate_limited
+        }
+    )
+    ElevatedCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.tmdb_title), style = MaterialTheme.typography.titleMedium)
+            Text(statusText, color = if (ui.state == TmdbConnection.CONNECTED) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.tmdb_body), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(
+                value = input, onValueChange = { input = it; vm.dismissFormatError() }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                label = { Text(stringResource(R.string.tmdb_key_label)) }, isError = ui.formatError,
+                supportingText = if (ui.formatError) { { Text(stringResource(R.string.tmdb_key_invalid_format)) } } else null,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button({ vm.saveTmdbKey(input); input = "" }, enabled = input.isNotBlank()) { Text(stringResource(R.string.tmdb_save)) }
+                if (ui.hasKey) OutlinedButton(vm::disconnectTmdb) { Text(stringResource(R.string.tmdb_disconnect)) }
+            }
+            if (ui.hasKey) TextButton(vm::clearCache) { Text(stringResource(R.string.tmdb_clear_cache)) }
+        }
     }
 }
 

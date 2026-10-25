@@ -31,6 +31,24 @@ interface TitleDao {
     @Update suspend fun update(e: TitleEntity)
     @Query("SELECT * FROM titles WHERE id = :id") fun observe(id: Long): Flow<TitleEntity?>
     @Query("DELETE FROM titles WHERE id = :id") suspend fun delete(id: Long)
+    @Query("SELECT * FROM titles WHERE mediaType = :type AND tmdbId = :tmdbId LIMIT 1")
+    suspend fun findByTmdb(type: MediaType, tmdbId: Long): TitleEntity?
+    @Query("SELECT id FROM titles WHERE mediaType = :type AND tmdbId = :tmdbId LIMIT 1")
+    fun observeIdByTmdb(type: MediaType, tmdbId: Long): Flow<Long?>
+}
+
+@Dao
+interface ExternalIdDao {
+    @Upsert suspend fun upsert(e: ExternalIdEntity)
+    @Query("SELECT * FROM external_ids WHERE titleId = :id") fun observeFor(id: Long): Flow<List<ExternalIdEntity>>
+}
+
+@Dao
+interface MetadataCacheDao {
+    @Query("SELECT * FROM metadata_cache WHERE cacheKey = :key") suspend fun get(key: String): MetadataCacheEntity?
+    @Upsert suspend fun put(e: MetadataCacheEntity)
+    @Query("DELETE FROM metadata_cache WHERE fetchedAt < :cutoff") suspend fun prune(cutoff: Long)
+    @Query("DELETE FROM metadata_cache") suspend fun clear()
 }
 
 @Dao

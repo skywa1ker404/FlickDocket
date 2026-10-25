@@ -14,6 +14,9 @@ interface LibraryRepository {
     fun observeHistory(titleId: Long): Flow<List<WatchRecord>>
     fun observeStats(): Flow<LibraryStats>
     suspend fun addManual(draft: NewTitleDraft): Long
+    /** Adds a TMDB title; if already tracked the existing entry is returned untouched (never overwritten). */
+    suspend fun addFromTmdb(detail: TmdbDetail, status: WatchStatus): Long
+    fun observeLibraryId(ref: TmdbRef): Flow<Long?>
     suspend fun setStatus(titleId: Long, status: WatchStatus)
     suspend fun setRating(titleId: Long, rating: Int?)
     suspend fun setFavorite(titleId: Long, favorite: Boolean)
@@ -30,15 +33,17 @@ class RoomLibraryRepository(
     private val titles = db.titleDao()
     private val library = db.libraryDao()
     private val watches = db.watchDao()
+    private val externalIds = db.externalIdDao()
 
     override fun observeLibrary() = library.observeLibrary().map { rows ->
         rows.map { LibraryItem(it.titleId, it.title, it.mediaType, it.year, it.posterPath, it.status, it.rating, it.favorite, it.watchCount, it.totalEpisodes, it.updatedAt) }
     }
 
     override fun observeDetail(titleId: Long): Flow<TitleDetail?> =
-        combine(titles.observe(titleId), library.observeEntry(titleId), watches.observeFor(titleId)) { t, e, w ->
+        combine(titles.observe(titleId), library.observeEntry(titleId), watches.observeFor(titleId), externalIds.observeFor(titleId)) { t, e, w, ids ->
             if (t == null || e == null) null
             else TitleDetail(t.id, t.name, t.mediaType, t.releaseYear, t.runtimeMinutes, t.totalEpisodes, t.overview, t.posterPath,
+                t.backdropPath, ids.firstOrNull { it.provider == "imdb" }?.externalId,
                 t.source, e.status, e.rating, e.favorite, e.notes, w.size, e.addedAt, e.updatedAt)
         }
 
@@ -60,6 +65,28 @@ class RoomLibraryRepository(
         library.upsert(LibraryEntryEntity(id, draft.status, addedAt = t, updatedAt = t))
         id
     }
+
+    override suspend fun addFromTmdb(detail: TmdbDetail, status: WatchStatus): Long = db.withTransaction {
+        titles.findByTmdb(detail.ref.type, detail.ref.id)?.let { return@withTransaction it.id }
+        val t = now()
+        val id = titles.insert(
+            TitleEntity(
+                mediaType = detail.ref.type, name = detail.title, tmdbId = detail.ref.id, overview = detail.overview,
+                posterPath = detail.posterPath, backdropPath = detail.backdropPath, releaseYear = detail.year,
+                runtimeMinutes = detail.runtimeMinutes, totalEpisodes = detail.totalEpisodes,
+                source = MetadataSource.TMDB, createdAt = t,
+            )
+        )
+        library.upsert(LibraryEntryEntity(id, status, addedAt = t, updatedAt = t))
+        listOfNotNull(
+            detail.externalIds.imdb?.let { "imdb" to it },
+            detail.externalIds.tvdb?.let { "tvdb" to it.toString() },
+            detail.externalIds.wikidata?.let { "wikidata" to it },
+        ).forEach { (p, v) -> externalIds.upsert(ExternalIdEntity(titleId = id, provider = p, externalId = v)) }
+        id
+    }
+
+    override fun observeLibraryId(ref: TmdbRef) = titles.observeIdByTmdb(ref.type, ref.id)
 
     private suspend fun mutate(titleId: Long, change: (LibraryEntryEntity) -> LibraryEntryEntity) {
         val e = library.getEntry(titleId) ?: return

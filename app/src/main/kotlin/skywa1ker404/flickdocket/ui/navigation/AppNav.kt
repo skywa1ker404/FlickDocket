@@ -34,6 +34,12 @@ import skywa1ker404.flickdocket.ui.components.SharedScopes
 import skywa1ker404.flickdocket.ui.screens.AppViewModelFactory
 import skywa1ker404.flickdocket.ui.screens.detail.DetailScreen
 import skywa1ker404.flickdocket.ui.screens.discover.DiscoverScreen
+import skywa1ker404.flickdocket.ui.screens.remote.RemoteDetailScreen
+import skywa1ker404.flickdocket.ui.components.LocalImageConfig
+import skywa1ker404.flickdocket.domain.MediaType
+import skywa1ker404.flickdocket.domain.TmdbRef
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import skywa1ker404.flickdocket.ui.screens.library.LibraryScreen
 import skywa1ker404.flickdocket.ui.screens.settings.SettingsScreen
 import skywa1ker404.flickdocket.ui.screens.stats.StatsScreen
@@ -48,12 +54,14 @@ enum class TopDest(val route: String, val label: Int, val icon: ImageVector, val
 }
 
 private const val DETAIL = "detail"
+private const val TMDB = "tmdb"
 
 @Composable
 fun AppNav(container: AppContainer, settings: AppSettings) {
     val nav = rememberNavController()
     val factory = AppViewModelFactory(container)
     val reduced = LocalReducedMotion.current
+    val imageConfig by container.imageConfig.collectAsStateWithLifecycle()
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val onTop = TopDest.entries.any { it.route == route }
@@ -61,7 +69,7 @@ fun AppNav(container: AppContainer, settings: AppSettings) {
     fun enter(): EnterTransition = if (reduced) EnterTransition.None else fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 24 }
     fun exit(): ExitTransition = if (reduced) ExitTransition.None else fadeOut(tween(160))
 
-    Scaffold(
+    CompositionLocalProvider(LocalImageConfig provides imageConfig) { Scaffold(
         bottomBar = {
             AnimatedVisibility(onTop, enter = if (reduced) EnterTransition.None else slideInVertically { it }, exit = if (reduced) ExitTransition.None else slideOutVertically { it }) {
                 NavigationBar {
@@ -89,7 +97,22 @@ fun AppNav(container: AppContainer, settings: AppSettings) {
                 composable(TopDest.Library.route) {
                     LibraryScreen(viewModel(factory = factory), SharedScopes(this@SharedTransitionLayout, this@composable)) { nav.navigate("$DETAIL/$it") }
                 }
-                composable(TopDest.Discover.route) { DiscoverScreen() }
+                composable(TopDest.Discover.route) {
+                    DiscoverScreen(
+                        viewModel(factory = factory), SharedScopes(this@SharedTransitionLayout, this@composable),
+                        onOpen = { type, id -> nav.navigate("$TMDB/${type.name}/$id") },
+                        onOpenSettings = { nav.navigate(TopDest.Settings.route) { launchSingleTop = true } },
+                    )
+                }
+                composable("$TMDB/{type}/{id}", arguments = listOf(navArgument("type") { type = NavType.StringType }, navArgument("id") { type = NavType.LongType })) { entry ->
+                    val type = entry.arguments?.getString("type")?.let { n -> MediaType.entries.firstOrNull { it.name == n } } ?: return@composable
+                    val id = entry.arguments?.getLong("id") ?: return@composable
+                    RemoteDetailScreen(
+                        TmdbRef(type, id), viewModel(key = "tmdb-${type.name}-$id", factory = factory), SharedScopes(this@SharedTransitionLayout, this@composable),
+                        onBack = { nav.popBackStack() }, onOpenLibrary = { nav.navigate("$DETAIL/$it") },
+                        onOpenSettings = { nav.navigate(TopDest.Settings.route) { launchSingleTop = true } },
+                    )
+                }
                 composable(TopDest.Stats.route) { StatsScreen(viewModel(factory = factory)) }
                 composable(TopDest.Settings.route) { SettingsScreen(viewModel(factory = factory), settings) }
                 composable("$DETAIL/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { entry ->
@@ -98,5 +121,5 @@ fun AppNav(container: AppContainer, settings: AppSettings) {
                 }
             }
         }
-    }
+    } }
 }

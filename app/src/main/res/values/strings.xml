@@ -74,8 +74,6 @@
     <string name="empty_history_body">Mark this title as watched and it will appear here.</string>
     <string name="empty_stats_title">No stats yet</string>
     <string name="empty_stats_body">Add titles and log what you watch to see your numbers.</string>
-    <string name="discover_title">Discover is coming</string>
-    <string name="discover_body">Browsing and search arrive once TMDB is connected in a later release. Until then you can add titles by hand.</string>
     <string name="stat_titles">Titles</string>
     <string name="stat_watches">Watches</string>
     <string name="stat_hours">Hours</string>
@@ -97,4 +95,67 @@
     <string name="providers_body">No provider is connected. Connections will be optional, show their status here, and disconnecting will never delete your local records.</string>
     <string name="about">About</string>
     <string name="about_body">Free software under GPL-3.0-or-later. No ads, telemetry or account.</string>
+
+    <string name="discover_search">Search movies and TV</string>
+    <string name="discover_trending">Trending this week</string>
+    <string name="discover_results">Results</string>
+    <string name="discover_empty_title">No results</string>
+    <string name="discover_empty_body">Try another title, or switch between Movies and TV.</string>
+    <string name="discover_needs_key_title">Connect TMDB to discover titles</string>
+    <string name="discover_needs_key_body">Add your free TMDB API key in Settings. Your library keeps working without it.</string>
+    <string name="open_settings">Open settings</string>
+    <string name="retry">Retry</string>
+    <string name="stale_banner">Showing saved data. It will refresh when TMDB is reachable.</string>
+    <string name="load_more_failed">Couldn\'t load more. Tap to retry</string>
+    <string name="tmdb_attribution">This product uses the TMDB API but is not endorsed or certified by TMDB.</string>
+
+    <string name="err_no_key">TMDB isn\'t connected</string>
+    <string name="err_unauthorized">TMDB rejected your key</string>
+    <string name="err_not_found">TMDB has no such title</string>
+    <string name="err_rate_limited">TMDB is rate limiting requests</string>
+    <string name="err_offline">Can\'t reach TMDB</string>
+    <string name="err_server">TMDB had a problem</string>
+    <string name="err_malformed">TMDB sent something unexpected</string>
+    <string name="err_hint">Your local library is unaffected.</string>
+
+    <string name="add_to_library">Add to library</string>
+    <string name="in_library">In your library</string>
+    <string name="open_in_library">Open in library</string>
+    <string name="label_rating">TMDB rating</string>
+    <string name="label_status">Status</string>
+    <string name="first_aired">First aired</string>
+    <string name="last_aired">Last aired</string>
+    <string name="release_dates">Release dates</string>
+    <string name="kind_premiere">Premiere</string>
+    <string name="kind_limited">Limited theatrical</string>
+    <string name="kind_theatrical">Theatrical</string>
+    <string name="kind_digital">Digital</string>
+    <string name="kind_physical">Physical</string>
+    <string name="kind_tv">TV</string>
+    <string name="cast">Cast</string>
+    <string name="crew">Crew</string>
+    <string name="external_ids">External IDs</string>
+    <string name="seasons">Seasons</string>
+    <string name="specials">Specials</string>
+    <string name="season_n">Season %1$d</string>
+    <string name="show_episodes">Show episodes</string>
+    <string name="hide_episodes">Hide episodes</string>
+    <plurals name="episode_count">
+        <item quantity="one">%1$d episode</item>
+        <item quantity="other">%1$d episodes</item>
+    </plurals>
+
+    <string name="tmdb_title">TMDB</string>
+    <string name="tmdb_body">Primary source for titles, posters and episodes. Use your own free key or read access token from your TMDB account. It is stored encrypted on this device, kept out of backups and never mixed with your library. Disconnecting never deletes your library.</string>
+    <string name="tmdb_key_label">API key or read access token</string>
+    <string name="tmdb_key_invalid_format">That doesn\'t look like a TMDB key or token</string>
+    <string name="tmdb_save">Save and verify</string>
+    <string name="tmdb_disconnect">Disconnect</string>
+    <string name="tmdb_clear_cache">Clear cached TMDB data</string>
+    <string name="tmdb_state_none">Not connected</string>
+    <string name="tmdb_state_checking">Checking…</string>
+    <string name="tmdb_state_connected">Connected</string>
+    <string name="tmdb_state_invalid">Key rejected by TMDB. Replace it.</string>
+    <string name="tmdb_state_unreachable">Can\'t reach TMDB right now</string>
+    <string name="tmdb_state_rate_limited">Rate limited. Try again shortly</string>
 </resources>
