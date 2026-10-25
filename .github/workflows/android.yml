@@ -1,0 +1,40 @@
+name: Android CI
+on:
+  push: { branches: [main, "foundation/**"] }
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: 17 }
+      - name: Accept Android SDK licenses (SDK is preinstalled on the runner)
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "9.6.0" }
+      - name: Unit tests, debug build, lint
+        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:lintDebug --stacktrace --console=plain 2>&1 | tee build.log; exit ${PIPESTATUS[0]}
+      - name: Surface errors as annotations
+        if: failure()
+        run: |
+          grep -E "^e: |Unresolved|FAILED" build.log | sed 's/%/%25/g' | head -30 | while IFS= read -r l; do echo "::error::${l:0:400}"; done
+          blk=$(grep -A18 "What went wrong" build.log | head -25 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          echo "::error title=what-went-wrong::${blk:0:3000}"
+      - name: Report lint errors and test summary
+        if: always()
+        run: |
+          f=app/build/reports/lint-results-debug.txt
+          if [ -f "$f" ]; then grep -E "Error:|Fatal:" -B1 "$f" | grep -v '^--' | sed 's/%/%25/g' | head -40 | while IFS= read -r l; do echo "::error title=lint::${l:0:300}"; done; fi
+          t=$(grep -ho 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' app/build/test-results/testDebugUnitTest/*.xml 2>/dev/null | head -5 | tr '\n' ';')
+          echo "::notice title=unit-tests::${t:-no unit test results found}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports
+          path: |
+            build.log
+            app/build/reports
+            app/build/outputs/apk/debug/*.apk
+          if-no-files-found: ignore
+# Releases are never published automatically; they require explicit maintainer approval.

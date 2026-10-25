@@ -1,0 +1,14 @@
+*.iml
+.gradle/
+build/
+local.properties
+.idea/
+.kotlin/
+captures/
+*.apk
+*.aab
+*.jks
+*.keystore
+# Never commit provider credentials or keys
+secrets.properties
+*.token
