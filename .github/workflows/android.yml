@@ -14,7 +14,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "9.6.0" }
       - name: Unit tests, debug build, lint
-        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:lintDebug --stacktrace --console=plain 2>&1 | tee build.log; exit ${PIPESTATUS[0]}
+        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:compileDebugAndroidTestKotlin :app:lintDebug --stacktrace --console=plain 2>&1 | tee build.log; exit ${PIPESTATUS[0]}
       - name: Surface errors as annotations
         if: failure()
         run: |
