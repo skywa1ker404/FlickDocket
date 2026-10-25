@@ -87,7 +87,7 @@ fun DetailScreen(titleId: Long, vm: DetailViewModel, scopes: SharedScopes, onBac
 @Composable
 private fun Header(d: TitleDetail, scopes: SharedScopes) {
     Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.Bottom) {
-        PosterArt(d.title, Modifier.width(120.dp).aspectRatio(2f / 3f).posterSharedElement(posterKey(d.titleId), scopes))
+        PosterImage(d.posterPath, d.title, Modifier.width(120.dp).aspectRatio(2f / 3f).posterSharedElement(posterKey(d.titleId), scopes))
         Spacer(Modifier.width(16.dp))
         Column {
             Text(d.title, style = MaterialTheme.typography.headlineSmall)
@@ -105,6 +105,8 @@ private fun Overview(d: TitleDetail, vm: DetailViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(stringResource(R.string.status), pad, style = MaterialTheme.typography.titleMedium)
         PillRow(WatchStatus.entries, { it == d.status }, { statusLabel(it) }, vm::setStatus)
+        d.overview?.let { Text(it, pad, style = MaterialTheme.typography.bodyMedium) }
+        d.imdbId?.let { Text("IMDb: $it", pad, style = MaterialTheme.typography.labelLarge) }
         Box(pad) { WatchControls(d, vm) }
         Box(pad) { RatingControl(d.rating, vm::setRating) }
         Column(pad) { NotesEditor(d.notes, vm::saveNotes) }

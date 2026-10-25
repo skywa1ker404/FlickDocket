@@ -63,3 +63,11 @@ data class WatchEventEntity(
     val seasonNumber: Int? = null,
     val episodeNumber: Int? = null,
 )
+
+/** Raw TMDB responses keyed by request (never containing credentials). Pruned by age and clearable by the user. */
+@Entity(tableName = "metadata_cache")
+data class MetadataCacheEntity(
+    @PrimaryKey val cacheKey: String,
+    val body: String,
+    val fetchedAt: Long,
+)

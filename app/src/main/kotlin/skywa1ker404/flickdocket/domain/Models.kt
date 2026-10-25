@@ -34,6 +34,8 @@ data class TitleDetail(
     val totalEpisodes: Int?,
     val overview: String?,
     val posterPath: String?,
+    val backdropPath: String?,
+    val imdbId: String?,
     val source: MetadataSource,
     val status: WatchStatus,
     val rating: Int?,

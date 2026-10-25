@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- No INTERNET permission yet: Phase 0/1 are fully offline. It is added in Phase 2 with TMDB. -->
+    <!-- Network is used only for optional TMDB metadata/images; local tracking never needs it. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:name=".FlickDocketApp"
         android:allowBackup="true"
+        android:usesCleartextTraffic="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
