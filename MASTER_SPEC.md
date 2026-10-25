@@ -35,7 +35,7 @@ Planned: `episodes`/`seasons` cache (Phase 2), `sync_links` (provider ↔ title 
 ## 4. Providers (verify before each phase; facts below dated 2026-10-24)
 | Provider | Role | Verified | Still to verify before coding |
 |---|---|---|---|
-| TMDB | Primary metadata, posters, episodes | Free for non-commercial use with attribution; must show "This product uses the TMDB API but is not endorsed or certified by TMDB." plus TMDB logo (less prominent than app logo) in About/Credits; commercial use needs a licence (developer.themoviedb.org FAQ). | Rate limits, image-caching rules, external-ids endpoint, full terms page (robots-blocked for our fetcher — read manually). |
+| TMDB | Primary metadata, posters, episodes | **Implemented in Phase 2.** Auth: Bearer read-access token or `api_key` param (same access). Rate limit: legacy 40/10s removed; upper bound "in the 40 requests per second range", may change; 429 must be respected (no documented Retry-After; we honour it if sent). Images: `{base_url}{size}{path}` from `/configuration`. Free for non-commercial use with attribution; must show "This product uses the TMDB API but is not endorsed or certified by TMDB." plus TMDB logo (less prominent than app logo) in About/Credits; commercial use needs a licence (developer.themoviedb.org FAQ). | Caching/offline-storage rules (not on any page we could read; full terms page is robots-blocked for our fetcher, read it manually), approved logo asset and its licence. |
 | IMDb ids/ratings | Optional | — | IMDb ids via TMDB external ids only if TMDB terms allow. IMDb **ratings** have no free licensed API; stay disabled until legitimate licensed access exists. |
 | Trakt | Optional two-way sync | — | Current OAuth/device-code flow, whether client secret is required (open-source app cannot hide one → decide user-registered app vs embedded), rate limits, VIP limits, ToS for third-party apps. Apiary docs were JS-only to our fetcher. |
 | Simkl | Optional two-way sync | Docs moved to api.simkl.org. OAuth 2.0 auth-code and device/PIN flows; PKCE required for both; `client_id` public; scopes `media:read`/`media:write`; access token 7 days, refresh token 180 days (rotating); free tier = 3 unverified apps; V1 API retires ~Apr 2027 (use V2 only). | Required headers, rate limits, sync endpoints, ToS. |
@@ -47,6 +47,9 @@ Planned: `episodes`/`seasons` cache (Phase 2), `sync_links` (provider ↔ title 
 - OAuth via system browser / Custom Tabs (auth-code + PKCE) or device-code flow, per provider docs. App never sees provider passwords.
 - Credentials (tokens, API keys) live in a dedicated store (Android Keystore-backed encrypted storage), separate from the Room DB and DataStore settings. Excluded from backups (`backup_rules.xml`, `data_extraction_rules.xml` already exclude `credentials` paths), never logged, never exported.
 - Status per provider: Not connected / Connected (account label, last sync) / Needs attention (expired, revoked, rate-limited). **Disconnect** revokes the token where supported, deletes credentials and sync links, and keeps all local records.
+
+### 5.1 TMDB credential decision (Phase 2)
+FlickDocket ships **no** TMDB key. Each user enters their own free key or v4 read token in Settings. Rationale: any key compiled into an APK is extractable, and a shared key would share one rate limit across all installs. A future app-level key would need a server-side proxy, which conflicts with local-first/no-telemetry and is out of scope. The key is validated by format, then verified against `/configuration`; invalid or missing keys degrade to a clear state while the local library keeps working. Disconnect removes the key and cached responses, never library records.
 
 ## 6. Sync, import & conflicts
 - Sync is opt-in per provider, two-way, using documented endpoints only; incremental where the provider supports it (e.g. last-activity timestamps).
@@ -79,6 +82,9 @@ Min 48dp targets; labels on all icon buttons; merged semantics + click labels on
 ## 10. Dependencies & licensing (GPL-3.0 compatibility)
 All Apache-2.0, which is compatible with GPLv3 (not with GPLv2-only): AndroidX (Compose, Material3, Navigation, Lifecycle, Room, DataStore, Activity, Core, graphics-shapes), Kotlin stdlib, kotlinx.coroutines. Test: JUnit 4 (EPL-1.0, test-only, not distributed). Planned: Coil (Apache-2.0), OkHttp (Apache-2.0), kotlinx.serialization (Apache-2.0). **Rule:** before adding any dependency, asset, font or icon, record its licence here and confirm GPLv3 compatibility. Fonts/icons: Material Icons (Apache-2.0); app icon and poster art are original.
 Version pins live in `gradle/libs.versions.toml` and are CI-verified (run 40155464209): AGP 9.4.0, Gradle 9.6.0, Kotlin 2.3.10, KSP 2.3.11, material3 1.5.0-alpha29 (expressive APIs are not public in stable 1.4.0; the 1.5 line pulls compose 1.13 which requires AGP 9.1+ and compileSdk 37). The stack is pre-release; track stable 1.5.
+
+## 10.1 Phase 2 dependencies
+OkHttp 5.1.0 (Apache-2.0), kotlinx.serialization-json 1.9.0 (Apache-2.0), Coil 3.3.0 (Apache-2.0). All GPLv3-compatible. TMDB data and images remain TMDB's property and are not relicensed under GPL; they are fetched at runtime and only cached locally.
 
 ## 11. Testing strategy
 JVM unit tests for domain rules and (later) parsers/mappers; instrumented Room tests (in-memory DB) for repository behaviour; migration tests from Phase 2; Compose UI tests for key flows from Phase 6. All build/test/lint runs happen on GitHub Actions; results are reported only from CI logs.

@@ -32,9 +32,21 @@ Last updated: 2026-10-25 (branch `foundation/phase-0`). Last green CI run: 40155
 - [ ] On-device check: themes, reduced motion, TalkBack, 200% font scale, tablet width
 - [ ] Add `INTERNET` permission only when Phase 2 starts
 
-## Phase 2 — TMDB
-- [ ] Re-read TMDB terms/rate limits; decide API-key strategy; document in spec
-- [ ] Search/discover/detail, posters (Coil), episodes/seasons cache, attribution in About
+## Phase 2 — TMDB (branch `phase-2/tmdb`; CI run 40199863208 green: build, lint, 52 unit tests)
+- [x] Re-checked TMDB docs: auth (Bearer token or api_key), rate limiting (legacy limit removed, ~40 req/s upper bound, 429), images (base_url + size + path from /configuration), attribution text. Caching/storage terms could NOT be read (terms page blocks our fetcher): see spec §4
+- [x] Key strategy: **user-supplied key only** (free TMDB key or v4 read token). No key is built into the app; an embedded key can be extracted from an APK. Stored AES-256-GCM via Android Keystore in a separate DataStore, excluded from backups
+- [x] Client: rate limiter (20/s), 429 retry honouring Retry-After (max 2), TTL cache with stale fallback, typed errors (missing key, unauthorized, not found, rate limited, offline, server, malformed). JVM-tested with a fake HTTP layer (16 tests)
+- [x] Mapping: search/trending pages, movie + TV details, cast, key crew, release dates + certifications (region, then US), external IDs (IMDb, TVDB, Wikidata), seasons incl. Specials (season 0, excluded from episode total), episodes. JVM-tested (11 tests)
+- [x] Anime heuristic on TV results (Japanese-language animation hidden); movies unfiltered. Heuristic only
+- [x] Pagination with dedupe; UI loads more near end of grid
+- [~] UI: Discover (search, trending, states for no key / invalid key / offline / empty), TMDB detail (backdrop, cast, crew, releases, IDs, seasons/episodes, add to library), Settings TMDB card (status, save+verify, disconnect, clear cache), Coil posters with generated-art fallback. Compiles and lints; never run on a device
+- [~] Room v2 (metadata_cache) + manual migration 1→2; `addFromTmdb` is idempotent and never overwrites a tracked title. Instrumented test written, **not run**
+- [x] Attribution text in About, Discover footer and TMDB detail
+- [ ] **TMDB logo not added**: TMDB requires an approved logo asset; obtain it from TMDB's brand assets and confirm its licence is compatible before bundling
+- [ ] Verify TMDB caching/storage terms by reading the full terms page manually (cache TTLs: search 1h, trending 6h, detail/season 24h, config 7d, hard prune at 7d; cache cleared on disconnect)
+- [ ] Migration test needs the committed v1/v2 schema JSON (app/schemas is not committed yet)
+- [ ] Refresh stored metadata for library titles; per-episode watch tracking from fetched episodes
+- [ ] Emulator CI job to run instrumented tests; on-device checks
 ## Phase 3 — Serializd import
 - [ ] Obtain a real export sample; parser + preview + undo
 ## Phase 4 — Trakt & Simkl
@@ -45,5 +57,6 @@ Last updated: 2026-10-25 (branch `foundation/phase-0`). Last green CI run: 40155
 - [ ] Tablet two-pane, calendar/upcoming, own-data export/import, tags/lists, migration tests, accessibility audit
 
 ## Known unverified items
+- A set of unreviewed TMDB files (separate `data/tmdb` stack, build-time key in BuildConfig) was found uncommitted in the working tree on 2026-10-25, not written in this work. They were set aside, not used and not committed; the build-time key conflicted with the no-embedded-secrets rule.
 - UI behaviour, themes, reduced motion, shared-element transition, accessibility: compiled and linted only, never run on a device or emulator.
 - `compileSdk 37` and material3 `1.5.0-alpha29` are pre-release stack choices forced by compose dependencies; revisit when stable.
