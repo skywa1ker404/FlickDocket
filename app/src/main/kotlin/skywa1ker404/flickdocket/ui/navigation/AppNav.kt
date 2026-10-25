@@ -121,6 +121,5 @@ fun AppNav(container: AppContainer, settings: AppSettings) {
                 }
             }
         }
-    }
     } }
 }
