@@ -1,8 +1,8 @@
 # UNVERIFIED pins: Maven hosts were unreachable when written. First CI run must confirm them.
 [versions]
-agp = "8.13.0"
-kotlin = "2.2.20"
-ksp = "2.2.20-2.0.3"
+agp = "9.4.0"
+kotlin = "2.3.10"
+ksp = "2.3.11"
 composeBom = "2025.10.00"
 material3 = "1.5.0-alpha29"
 room = "2.8.1"
@@ -45,7 +45,6 @@ androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTes
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+ksp = "2.3.11"
 room = { id = "androidx.room", version.ref = "room" }
