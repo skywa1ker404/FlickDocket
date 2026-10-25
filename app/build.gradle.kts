@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "skywa1ker404.flickdocket"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "skywa1ker404.flickdocket"
