@@ -8,6 +8,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import skywa1ker404.flickdocket.data.prefs.SettingsStore
 import skywa1ker404.flickdocket.data.repo.MetadataRepository
 import skywa1ker404.flickdocket.data.secure.CredentialStore
 import skywa1ker404.flickdocket.domain.*
@@ -16,6 +17,7 @@ enum class DiscoverPhase { NeedsKey, Loading, Content, Error }
 
 data class DiscoverUi(
     val query: String = "",
+    val mode: MetadataMode = MetadataMode.OPEN,
     val type: MediaType = MediaType.MOVIE,
     val paged: PagedItems<TmdbSummary> = PagedItems(),
     val phase: DiscoverPhase = DiscoverPhase.Loading,
@@ -25,7 +27,7 @@ data class DiscoverUi(
     val moreFailed: Boolean = false,
 )
 
-class DiscoverViewModel(private val repo: MetadataRepository, credentials: CredentialStore) : ViewModel() {
+class DiscoverViewModel(private val repo: MetadataRepository, credentials: CredentialStore, settings: SettingsStore) : ViewModel() {
     private val _ui = MutableStateFlow(DiscoverUi())
     val ui: StateFlow<DiscoverUi> = _ui.asStateFlow()
 
@@ -38,8 +40,9 @@ class DiscoverViewModel(private val repo: MetadataRepository, credentials: Crede
 
     init {
         viewModelScope.launch {
-            combine(credentials.hasTmdbKey, query.debounce { if (it.isEmpty()) 0L else 400L }, type, retry) { has, q, t, _ -> Triple(has, q.trim(), t) }
-                .collectLatest { (has, q, t) -> reload(has, q, t) }
+            val mode = settings.settings.map { it.metadataMode }.distinctUntilChanged()
+            combine(credentials.hasTmdbKey, mode, query.debounce { if (it.isEmpty()) 0L else 400L }, type, retry) { has, m, q, t, _ -> Req(has, m, q.trim(), t) }
+                .collectLatest { reload(it) }
         }
     }
 
@@ -47,14 +50,20 @@ class DiscoverViewModel(private val repo: MetadataRepository, credentials: Crede
     fun setType(t: MediaType) { _ui.update { it.copy(type = t) }; type.value = t }
     fun retry() { retry.update { it + 1 } }
 
-    private suspend fun reload(hasKey: Boolean, q: String, t: MediaType) {
+    private data class Req(val hasKey: Boolean, val mode: MetadataMode, val q: String, val t: MediaType)
+
+    private suspend fun reload(req: Req) {
+        val (hasKey, mode, q, t) = req
         val gen = ++generation
         activeQuery = q; activeType = t
-        if (!hasKey) { _ui.update { it.copy(phase = DiscoverPhase.NeedsKey, paged = PagedItems(), error = null) }; return }
+        _ui.update { it.copy(mode = mode) }
+        if (mode == MetadataMode.TMDB && !hasKey) { _ui.update { it.copy(phase = DiscoverPhase.NeedsKey, paged = PagedItems(), error = null) }; return }
         _ui.update { it.copy(phase = DiscoverPhase.Loading, paged = PagedItems(), error = null, stale = false, loadingMore = false, moreFailed = false) }
-        val check = repo.verifyKey(false) // also loads image sizes; an invalid key stops here with a clear error
-        if (check is MetadataResult.Failure && check.error == MetadataError.Unauthorized) {
-            _ui.update { it.copy(phase = DiscoverPhase.Error, error = check.error) }; return
+        if (mode == MetadataMode.TMDB) {
+            val check = repo.verifyKey(false) // also loads image sizes; an invalid key stops here with a clear error
+            if (check is MetadataResult.Failure && check.error == MetadataError.Unauthorized) {
+                _ui.update { it.copy(phase = DiscoverPhase.Error, error = check.error) }; return
+            }
         }
         when (val r = fetch(q, t, 1)) {
             is MetadataResult.Ok -> if (gen == generation) _ui.update {

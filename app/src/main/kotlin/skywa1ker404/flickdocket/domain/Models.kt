@@ -2,7 +2,7 @@ package skywa1ker404.flickdocket.domain
 
 enum class MediaType { MOVIE, TV }
 enum class WatchStatus { PLANNING, WATCHING, COMPLETED, ON_HOLD, DROPPED }
-enum class MetadataSource { MANUAL, TMDB }
+enum class MetadataSource { MANUAL, TMDB, TVMAZE }
 enum class ThemeMode { SYSTEM, LIGHT, DARK, AMOLED }
 enum class MotionPreference { FOLLOW_SYSTEM, REDUCED, FULL }
 enum class LibrarySort { RECENTLY_UPDATED, TITLE, RATING, RELEASE }

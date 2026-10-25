@@ -67,18 +67,22 @@ class RoomLibraryRepository(
     }
 
     override suspend fun addFromTmdb(detail: TmdbDetail, status: WatchStatus): Long = db.withTransaction {
-        titles.findByTmdb(detail.ref.type, detail.ref.id)?.let { return@withTransaction it.id }
+        val tvmaze = detail.ref.source == RefSource.TVMAZE
+        val existing = (if (tvmaze) externalIds.findTitleId("tvmaze", detail.ref.id.toString()) else titles.findByTmdb(detail.ref.type, detail.ref.id)?.id)
+            ?: detail.externalIds.imdb?.let { externalIds.findTitleId("imdb", it) } // same work added from the other source
+        if (existing != null) return@withTransaction existing
         val t = now()
         val id = titles.insert(
             TitleEntity(
-                mediaType = detail.ref.type, name = detail.title, tmdbId = detail.ref.id, overview = detail.overview,
+                mediaType = detail.ref.type, name = detail.title, tmdbId = if (tvmaze) null else detail.ref.id, overview = detail.overview,
                 posterPath = detail.posterPath, backdropPath = detail.backdropPath, releaseYear = detail.year,
                 runtimeMinutes = detail.runtimeMinutes, totalEpisodes = detail.totalEpisodes,
-                source = MetadataSource.TMDB, createdAt = t,
+                source = if (tvmaze) MetadataSource.TVMAZE else MetadataSource.TMDB, createdAt = t,
             )
         )
         library.upsert(LibraryEntryEntity(id, status, addedAt = t, updatedAt = t))
         listOfNotNull(
+            if (tvmaze) "tvmaze" to detail.ref.id.toString() else null,
             detail.externalIds.imdb?.let { "imdb" to it },
             detail.externalIds.tvdb?.let { "tvdb" to it.toString() },
             detail.externalIds.wikidata?.let { "wikidata" to it },
@@ -86,7 +90,8 @@ class RoomLibraryRepository(
         id
     }
 
-    override fun observeLibraryId(ref: TmdbRef) = titles.observeIdByTmdb(ref.type, ref.id)
+    override fun observeLibraryId(ref: TmdbRef) =
+        if (ref.source == RefSource.TVMAZE) externalIds.observeTitleId("tvmaze", ref.id.toString()) else titles.observeIdByTmdb(ref.type, ref.id)
 
     private suspend fun mutate(titleId: Long, change: (LibraryEntryEntity) -> LibraryEntryEntity) {
         val e = library.getEntry(titleId) ?: return

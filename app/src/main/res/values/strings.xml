@@ -158,4 +158,13 @@
     <string name="tmdb_state_invalid">Key rejected by TMDB. Replace it.</string>
     <string name="tmdb_state_unreachable">Can\'t reach TMDB right now</string>
     <string name="tmdb_state_rate_limited">Rate limited. Try again shortly</string>
+    <string name="err_unsupported">This source can\'t provide that</string>
+    <string name="discover_on_tv">On TV today</string>
+    <string name="tvmaze_attribution">TV data and images from TVmaze (tvmaze.com), licensed CC BY-SA 4.0. FlickDocket is not endorsed by TVmaze.</string>
+    <string name="view_on_tvmaze">View on TVmaze</string>
+    <string name="source_heading">Metadata source</string>
+    <string name="source_open">No setup (TVmaze)</string>
+    <string name="source_tmdb_option">TMDB</string>
+    <string name="source_open_body">Works immediately with no account or key. TV shows only: search, today\'s schedule, cast, seasons, specials and IMDb ids (you can also search by an IMDb id like tt0903747). Movies can still be added by hand.</string>
+    <string name="source_tmdb_body">Movies and TV with posters, backdrops, crew and release dates. Needs your own free TMDB key, entered below.</string>
 </resources>

@@ -17,7 +17,7 @@ class AppViewModelFactory(private val c: AppContainer) : ViewModelProvider.Facto
         StatsViewModel::class.java -> StatsViewModel(c.libraryRepository)
         SettingsViewModel::class.java -> SettingsViewModel(c.settingsStore, c.credentialStore, c.metadataRepository)
         DetailViewModel::class.java -> DetailViewModel(c.libraryRepository)
-        DiscoverViewModel::class.java -> DiscoverViewModel(c.metadataRepository, c.credentialStore)
+        DiscoverViewModel::class.java -> DiscoverViewModel(c.metadataRepository, c.credentialStore, c.settingsStore)
         RemoteDetailViewModel::class.java -> RemoteDetailViewModel(c.metadataRepository, c.libraryRepository)
         else -> error("Unknown ViewModel ${modelClass.name}")
     } as T

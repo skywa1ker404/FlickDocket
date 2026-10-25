@@ -28,6 +28,7 @@ import skywa1ker404.flickdocket.R
 import skywa1ker404.flickdocket.domain.*
 import skywa1ker404.flickdocket.ui.components.*
 import skywa1ker404.flickdocket.ui.screens.discover.tmdbPosterKey
+import androidx.compose.ui.platform.LocalUriHandler
 import java.util.Locale
 
 @Composable
@@ -65,7 +66,7 @@ private fun Content(
         Box {
             BackdropImage(d.backdropPath, Modifier.fillMaxWidth().aspectRatio(16f / 9f))
             Row(pad.align(Alignment.BottomStart), verticalAlignment = Alignment.Bottom) {
-                PosterImage(d.posterPath, d.title, Modifier.width(110.dp).aspectRatio(2f / 3f).posterSharedElement(tmdbPosterKey(d.ref.type, d.ref.id), scopes))
+                PosterImage(d.posterPath, d.title, Modifier.width(110.dp).aspectRatio(2f / 3f).posterSharedElement(tmdbPosterKey(d.ref), scopes))
                 Spacer(Modifier.width(16.dp))
                 Column {
                     Text(d.title, style = MaterialTheme.typography.headlineSmall)
@@ -104,7 +105,9 @@ private fun Content(
         }
         ExternalIdsBlock(d.externalIds, pad)
         if (d.seasons.isNotEmpty()) Seasons(d, ui, vm)
-        TmdbAttribution()
+        val uri = LocalUriHandler.current
+        d.sourceUrl?.let { url -> TextButton({ uri.openUri(url) }, pad) { Text(stringResource(R.string.view_on_tvmaze)) } }
+        SourceAttribution(d.ref.source)
     }
 }
 

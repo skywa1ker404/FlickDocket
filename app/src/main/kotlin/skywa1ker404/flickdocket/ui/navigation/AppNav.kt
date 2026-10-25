@@ -37,6 +37,7 @@ import skywa1ker404.flickdocket.ui.screens.discover.DiscoverScreen
 import skywa1ker404.flickdocket.ui.screens.remote.RemoteDetailScreen
 import skywa1ker404.flickdocket.ui.components.LocalImageConfig
 import skywa1ker404.flickdocket.domain.MediaType
+import skywa1ker404.flickdocket.domain.RefSource
 import skywa1ker404.flickdocket.domain.TmdbRef
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -100,15 +101,16 @@ fun AppNav(container: AppContainer, settings: AppSettings) {
                 composable(TopDest.Discover.route) {
                     DiscoverScreen(
                         viewModel(factory = factory), SharedScopes(this@SharedTransitionLayout, this@composable),
-                        onOpen = { type, id -> nav.navigate("$TMDB/${type.name}/$id") },
+                        onOpen = { r -> nav.navigate("$TMDB/${r.source.name}/${r.type.name}/${r.id}") },
                         onOpenSettings = { nav.navigate(TopDest.Settings.route) { launchSingleTop = true } },
                     )
                 }
-                composable("$TMDB/{type}/{id}", arguments = listOf(navArgument("type") { type = NavType.StringType }, navArgument("id") { type = NavType.LongType })) { entry ->
+                composable("$TMDB/{source}/{type}/{id}", arguments = listOf(navArgument("source") { type = NavType.StringType }, navArgument("type") { type = NavType.StringType }, navArgument("id") { type = NavType.LongType })) { entry ->
+                    val source = entry.arguments?.getString("source")?.let { n -> RefSource.entries.firstOrNull { it.name == n } } ?: return@composable
                     val type = entry.arguments?.getString("type")?.let { n -> MediaType.entries.firstOrNull { it.name == n } } ?: return@composable
                     val id = entry.arguments?.getLong("id") ?: return@composable
                     RemoteDetailScreen(
-                        TmdbRef(type, id), viewModel(key = "tmdb-${type.name}-$id", factory = factory), SharedScopes(this@SharedTransitionLayout, this@composable),
+                        TmdbRef(type, id, source), viewModel(key = "remote-${source.name}-${type.name}-$id", factory = factory), SharedScopes(this@SharedTransitionLayout, this@composable),
                         onBack = { nav.popBackStack() }, onOpenLibrary = { nav.navigate("$DETAIL/$it") },
                         onOpenSettings = { nav.navigate(TopDest.Settings.route) { launchSingleTop = true } },
                     )

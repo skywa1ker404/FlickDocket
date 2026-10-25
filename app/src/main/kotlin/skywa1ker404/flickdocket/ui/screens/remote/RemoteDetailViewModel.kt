@@ -46,7 +46,7 @@ class RemoteDetailViewModel(private val metadata: MetadataRepository, private va
         if (_ui.value.seasons[number] is SeasonState.Loaded) return
         _ui.update { it.copy(seasons = it.seasons + (number to SeasonState.Loading)) }
         viewModelScope.launch {
-            val s = when (val res = metadata.season(r.id, number)) {
+            val s = when (val res = metadata.season(r, number)) {
                 is MetadataResult.Ok -> SeasonState.Loaded(res.value, res.stale)
                 is MetadataResult.Failure -> SeasonState.Failed(res.error)
             }

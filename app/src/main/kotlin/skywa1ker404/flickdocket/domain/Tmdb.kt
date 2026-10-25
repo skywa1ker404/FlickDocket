@@ -1,6 +1,11 @@
 package skywa1ker404.flickdocket.domain
 
-data class TmdbRef(val type: MediaType, val id: Long)
+/** Which catalogue an id belongs to. Names stay "Tmdb*" for the shared remote-title types. */
+enum class RefSource { TMDB, TVMAZE }
+/** User-selectable metadata source: OPEN needs no setup (TVmaze); TMDB needs the user's own key. */
+enum class MetadataMode { OPEN, TMDB }
+
+data class TmdbRef(val type: MediaType, val id: Long, val source: RefSource = RefSource.TMDB)
 
 data class TmdbSummary(
     val ref: TmdbRef, val title: String, val year: Int?, val overview: String?,
@@ -39,6 +44,8 @@ data class TmdbDetail(
     val genres: List<String>, val rating: Float?, val certification: String?,
     val cast: List<CastMember>, val crew: List<CrewMember>, val releases: List<ReleaseInfo>,
     val seasons: List<SeasonSummary>, val externalIds: ExternalIds,
+    /** Link back to the source page, required for attribution by some sources. */
+    val sourceUrl: String? = null,
 )
 
 sealed interface MetadataError {
@@ -49,6 +56,8 @@ sealed interface MetadataError {
     data object Offline : MetadataError
     data class Server(val code: Int) : MetadataError
     data object Malformed : MetadataError
+    /** The active source cannot provide this (e.g. movies without TMDB). */
+    data object Unsupported : MetadataError
 
     /** Worth falling back to cached data for; credentials and missing-title errors are not. */
     val isTransient: Boolean get() = this is Offline || this is RateLimited || this is Server
@@ -70,6 +79,11 @@ object AnimeFilter {
     const val ANIMATION_GENRE_ID = 16
     fun isAnime(genreIds: List<Int>, originalLanguage: String?): Boolean =
         ANIMATION_GENRE_ID in genreIds && originalLanguage.equals("ja", ignoreCase = true)
+
+    /** TVmaze variant: it names genres and languages instead of using TMDB ids. */
+    fun isAnimeByName(genres: List<String>, language: String?): Boolean =
+        genres.any { it.equals("Anime", ignoreCase = true) } ||
+            (genres.any { it.equals("Animation", ignoreCase = true) } && language.equals("Japanese", ignoreCase = true))
 }
 
 object TmdbKey {
@@ -95,6 +109,8 @@ data class ImageConfig(
 
     private fun url(path: String?, sizes: List<String>, minWidthPx: Int): String? {
         if (path.isNullOrBlank()) return null
+        // Some sources (TVmaze) return complete URLs; accept only https, never http or other schemes.
+        if (path.contains("://")) return path.takeIf { it.startsWith("https://") }
         val size = sizes.mapNotNull { s -> if (s.startsWith("w")) s.drop(1).toIntOrNull()?.let { it to s } else null }
             .sortedBy { it.first }.firstOrNull { it.first >= minWidthPx }?.second ?: "original"
         return baseUrl.trimEnd('/') + "/" + size + (if (path.startsWith("/")) path else "/$path")

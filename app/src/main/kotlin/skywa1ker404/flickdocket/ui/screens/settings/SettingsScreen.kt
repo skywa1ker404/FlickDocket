@@ -22,6 +22,7 @@ import skywa1ker404.flickdocket.data.prefs.AppSettings
 import skywa1ker404.flickdocket.domain.*
 import skywa1ker404.flickdocket.ui.components.PillRow
 import skywa1ker404.flickdocket.ui.components.SectionHeader
+import skywa1ker404.flickdocket.ui.components.SourceAttribution
 import skywa1ker404.flickdocket.ui.components.TmdbAttribution
 
 @Composable
@@ -41,7 +42,13 @@ fun SettingsScreen(vm: SettingsViewModel, settings: AppSettings) {
         Text(stringResource(R.string.motion_body), Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         SectionHeader(stringResource(R.string.providers))
-        TmdbCard(vm)
+        Text(stringResource(R.string.source_heading), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.titleMedium)
+        PillRow(MetadataMode.entries, { it == settings.metadataMode }, { stringResource(if (it == MetadataMode.OPEN) R.string.source_open else R.string.source_tmdb_option) }, vm::setMetadataMode)
+        Text(
+            stringResource(if (settings.metadataMode == MetadataMode.OPEN) R.string.source_open_body else R.string.source_tmdb_body),
+            Modifier.padding(horizontal = 16.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (settings.metadataMode == MetadataMode.TMDB) TmdbCard(vm)
         PlannedProviders.filter { it.id != ProviderId.TMDB }.forEach { p ->
             ListItem(
                 headlineContent = { Text(p.name) },
@@ -54,6 +61,7 @@ fun SettingsScreen(vm: SettingsViewModel, settings: AppSettings) {
         SectionHeader(stringResource(R.string.about))
         ListItem(headlineContent = { Text(stringResource(R.string.app_name)) }, supportingContent = { Text(stringResource(R.string.about_body)) })
         TmdbAttribution()
+        SourceAttribution(RefSource.TVMAZE)
     }
 }
 

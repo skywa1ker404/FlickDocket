@@ -41,6 +41,10 @@ interface TitleDao {
 interface ExternalIdDao {
     @Upsert suspend fun upsert(e: ExternalIdEntity)
     @Query("SELECT * FROM external_ids WHERE titleId = :id") fun observeFor(id: Long): Flow<List<ExternalIdEntity>>
+    @Query("SELECT titleId FROM external_ids WHERE provider = :provider AND externalId = :value LIMIT 1")
+    suspend fun findTitleId(provider: String, value: String): Long?
+    @Query("SELECT titleId FROM external_ids WHERE provider = :provider AND externalId = :value LIMIT 1")
+    fun observeTitleId(provider: String, value: String): Flow<Long?>
 }
 
 @Dao

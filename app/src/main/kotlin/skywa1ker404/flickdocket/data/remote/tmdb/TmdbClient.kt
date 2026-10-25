@@ -37,6 +37,10 @@ class TmdbClient(
     private val now: () -> Long = System::currentTimeMillis,
     private val pause: suspend (Long) -> Unit = { delay(it) },
     private val baseUrl: String = "https://api.themoviedb.org/3/",
+    /** false for keyless sources (TVmaze): no credential is read or sent. */
+    private val requiresKey: Boolean = true,
+    private val sendLanguage: Boolean = true,
+    private val cachePrefix: String = "",
 ) {
     val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
 
@@ -47,16 +51,16 @@ class TmdbClient(
         forceRefresh: Boolean = false,
         parse: (String) -> T,
     ): MetadataResult<T> {
-        val all = (params + ("language" to language())).toSortedMap()
-        val cacheKey = path + "?" + all.entries.joinToString("&") { "${it.key}=${it.value}" }
+        val all = (if (sendLanguage) params + ("language" to language()) else params).toSortedMap()
+        val cacheKey = cachePrefix + path + "?" + all.entries.joinToString("&") { "${it.key}=${it.value}" }
         val cached = cache.get(cacheKey)
         fun parsed(body: String, stale: Boolean): MetadataResult<T> =
             try { MetadataResult.Ok(parse(body), stale) } catch (e: IllegalArgumentException) { MetadataResult.Failure(MetadataError.Malformed) }
 
         if (!forceRefresh && cached != null && now() - cached.fetchedAt < ttlMs) return parsed(cached.body, false)
 
-        val key = keyProvider()?.trim()?.takeIf { it.isNotEmpty() }
-            ?: return if (cached != null) parsed(cached.body, true) else MetadataResult.Failure(MetadataError.MissingCredentials)
+        val key: String? = if (!requiresKey) null else (keyProvider()?.trim()?.takeIf { it.isNotEmpty() }
+            ?: return if (cached != null) parsed(cached.body, true) else MetadataResult.Failure(MetadataError.MissingCredentials))
 
         return when (val r = fetch(path, all, key)) {
             is Fetch.Body -> parsed(r.text, false).also { if (it is MetadataResult.Ok) cache.put(cacheKey, r.text, now()) }
@@ -70,11 +74,11 @@ class TmdbClient(
         data class Error(val error: MetadataError) : Fetch
     }
 
-    private suspend fun fetch(path: String, params: Map<String, String>, key: String): Fetch {
-        val bearer = TmdbKey.isBearer(key)
+    private suspend fun fetch(path: String, params: Map<String, String>, key: String?): Fetch {
+        val bearer = key != null && TmdbKey.isBearer(key)
         val url = baseUrl.toHttpUrl().newBuilder().addPathSegments(path).apply {
             params.forEach { (k, v) -> addQueryParameter(k, v) }
-            if (!bearer) addQueryParameter("api_key", key)
+            if (key != null && !bearer) addQueryParameter("api_key", key)
         }.build()
         val request = Request.Builder().url(url).header("Accept", "application/json")
             .apply { if (bearer) header("Authorization", "Bearer $key") }.build()

@@ -33,6 +33,7 @@ class SettingsViewModel(
     fun setTheme(v: ThemeMode) { viewModelScope.launch { store.setTheme(v) } }
     fun setDynamic(v: Boolean) { viewModelScope.launch { store.setDynamicColor(v) } }
     fun setMotion(v: MotionPreference) { viewModelScope.launch { store.setMotion(v) } }
+    fun setMetadataMode(v: MetadataMode) { viewModelScope.launch { store.setMetadataMode(v) } }
 
     fun saveTmdbKey(raw: String) {
         val key = raw.trim()

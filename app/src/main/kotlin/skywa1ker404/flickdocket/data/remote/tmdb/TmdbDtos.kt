@@ -81,4 +81,8 @@ import kotlinx.serialization.Serializable
     @SerialName("profile_sizes") val profileSizes: List<String> = emptyList(),
     @SerialName("still_sizes") val stillSizes: List<String> = emptyList(),
 )
+@Serializable data class FindDto(
+    @SerialName("movie_results") val movieResults: List<SummaryDto> = emptyList(),
+    @SerialName("tv_results") val tvResults: List<SummaryDto> = emptyList(),
+)
 @Serializable data class ConfigurationDto(val images: ImagesConfigDto = ImagesConfigDto())

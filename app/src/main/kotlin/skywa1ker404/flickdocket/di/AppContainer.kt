@@ -6,7 +6,11 @@ import okhttp3.OkHttpClient
 import skywa1ker404.flickdocket.data.local.FlickDocketDatabase
 import skywa1ker404.flickdocket.data.local.RoomResponseCache
 import skywa1ker404.flickdocket.data.prefs.SettingsStore
+import kotlinx.coroutines.flow.first
+import skywa1ker404.flickdocket.data.remote.tmdb.RateLimiter
 import skywa1ker404.flickdocket.data.remote.tmdb.TmdbClient
+import skywa1ker404.flickdocket.data.remote.tvmaze.TvMazeMetadataRepository
+import skywa1ker404.flickdocket.data.repo.SwitchingMetadataRepository
 import skywa1ker404.flickdocket.data.repo.LibraryRepository
 import skywa1ker404.flickdocket.data.repo.MetadataRepository
 import skywa1ker404.flickdocket.data.repo.RoomLibraryRepository
@@ -42,7 +46,20 @@ class AppContainer(context: Context) {
             language = { Locale.getDefault().toLanguageTag().takeIf { it != "und" } ?: "en-US" },
         )
     }
+    private fun region() = Locale.getDefault().country.ifBlank { "US" }
+    private val tvMazeClient by lazy {
+        TmdbClient(
+            http = httpClient, keyProvider = { null }, cache = responseCache,
+            // TVmaze documents at least 20 calls per 10 seconds per IP; stay under it.
+            limiter = RateLimiter(maxRequests = 15, windowMs = 10_000),
+            baseUrl = "https://api.tvmaze.com/", requiresKey = false, sendLanguage = false, cachePrefix = "tvmaze:",
+        )
+    }
     val metadataRepository: MetadataRepository by lazy {
-        TmdbMetadataRepository(tmdbClient, responseCache, imageConfig) { Locale.getDefault().country.ifBlank { "US" } }
+        SwitchingMetadataRepository(
+            mode = { settingsStore.settings.first().metadataMode },
+            tmdb = TmdbMetadataRepository(tmdbClient, responseCache, imageConfig, ::region),
+            open = TvMazeMetadataRepository(tvMazeClient, responseCache, ::region),
+        )
     }
 }
