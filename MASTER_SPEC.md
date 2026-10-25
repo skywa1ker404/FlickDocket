@@ -78,7 +78,7 @@ Min 48dp targets; labels on all icon buttons; merged semantics + click labels on
 
 ## 10. Dependencies & licensing (GPL-3.0 compatibility)
 All Apache-2.0, which is compatible with GPLv3 (not with GPLv2-only): AndroidX (Compose, Material3, Navigation, Lifecycle, Room, DataStore, Activity, Core, graphics-shapes), Kotlin stdlib, kotlinx.coroutines. Test: JUnit 4 (EPL-1.0, test-only, not distributed). Planned: Coil (Apache-2.0), OkHttp (Apache-2.0), kotlinx.serialization (Apache-2.0). **Rule:** before adding any dependency, asset, font or icon, record its licence here and confirm GPLv3 compatibility. Fonts/icons: Material Icons (Apache-2.0); app icon and poster art are original.
-Version pins live in `gradle/libs.versions.toml`. Material3 1.4.0 is stable; 1.5.0-beta02 existed on 2026-10-21 (Android release notes). Pins were written without Maven access and are **unverified until CI resolves them**.
+Version pins live in `gradle/libs.versions.toml` and are CI-verified (run 40155464209): AGP 9.4.0, Gradle 9.6.0, Kotlin 2.3.10, KSP 2.3.11, material3 1.5.0-alpha29 (expressive APIs are not public in stable 1.4.0; the 1.5 line pulls compose 1.13 which requires AGP 9.1+ and compileSdk 37). The stack is pre-release; track stable 1.5.
 
 ## 11. Testing strategy
 JVM unit tests for domain rules and (later) parsers/mappers; instrumented Room tests (in-memory DB) for repository behaviour; migration tests from Phase 2; Compose UI tests for key flows from Phase 6. All build/test/lint runs happen on GitHub Actions; results are reported only from CI logs.
