@@ -1,7 +1,7 @@
 # TODOList
 
 Legend: `[x]` done and verified · `[~]` written, **not yet verified by CI/device** · `[ ]` planned. Nothing is marked `[x]` unless it was actually verified.
-Last updated: 2026-10-26 (branch `phase-3/sources-tracking`). Last green CI run: 40155464209 (compile, 18 unit tests, assembleDebug, lintDebug).
+Last updated: 2026-10-26 (branch `phase-3/sources-tracking`). Last green CI run: 40269841411 (68 unit tests, assembleDebug, lintDebug) (compile, 18 unit tests, assembleDebug, lintDebug).
 
 ## Bugs (fixed before features)
 - [x] README title said "Stillword" (wrong project) → rewritten as FlickDocket.
