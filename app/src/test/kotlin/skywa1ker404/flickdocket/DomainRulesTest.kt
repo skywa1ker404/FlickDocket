@@ -2,6 +2,7 @@ package skywa1ker404.flickdocket
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import skywa1ker404.flickdocket.domain.*
@@ -90,5 +91,20 @@ class DomainRulesTest {
         assertTrue(ThemeRules.isDark(ThemeMode.AMOLED, false))
         assertFalse(ThemeRules.isDark(ThemeMode.LIGHT, true))
         assertTrue(ThemeRules.isDark(ThemeMode.SYSTEM, true))
+    }
+
+    @Test fun progressFractionClampsAndHandlesUnknownTotals() {
+        assertEquals(0.5f, ProgressRules.fraction(5, 10)!!, 0.001f)
+        assertEquals(1f, ProgressRules.fraction(12, 10)!!, 0.001f)
+        assertNull(ProgressRules.fraction(3, null))
+        assertNull(ProgressRules.fraction(3, 0))
+    }
+
+    @Test fun advanceAvailability() {
+        assertTrue(ProgressRules.canAdvance(MediaType.TV, WatchStatus.WATCHING, 3, 10))
+        assertFalse(ProgressRules.canAdvance(MediaType.TV, WatchStatus.COMPLETED, 10, 10))
+        assertTrue(ProgressRules.canAdvance(MediaType.TV, WatchStatus.WATCHING, 3, null))
+        assertTrue(ProgressRules.canAdvance(MediaType.MOVIE, WatchStatus.PLANNING, 0, null))
+        assertFalse(ProgressRules.canAdvance(MediaType.MOVIE, WatchStatus.COMPLETED, 1, null))
     }
 }

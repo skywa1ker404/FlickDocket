@@ -43,7 +43,13 @@ internal fun seasonDetail(eps: List<TvmEpisodeDto>, number: Int): SeasonDetail {
     })
 }
 
-internal fun TvmShowDto.toDetail(eps: List<TvmEpisodeDto>) = TmdbDetail(
+/** Earliest episode airing on or after [today] (ISO dates compare correctly as strings). */
+internal fun nextEpisodeOf(eps: List<TvmEpisodeDto>, today: String): NextEpisode? =
+    eps.mapNotNull { e -> e.airdate?.takeIf { it.isNotBlank() && it >= today }?.let { date -> e to date } }
+        .minWithOrNull(compareBy({ it.second }, { it.first.season }, { it.first.number ?: Int.MAX_VALUE }))
+        ?.let { (e, date) -> NextEpisode(e.season, e.number, e.name?.ifBlank { null }, date) }
+
+internal fun TvmShowDto.toDetail(eps: List<TvmEpisodeDto>, today: String = java.time.LocalDate.now().toString()) = TmdbDetail(
     ref = ref(id), title = name, tagline = null, overview = stripHtml(summary),
     posterPath = image.url(true), backdropPath = null, year = yearOf(premiered),
     firstAirDate = premiered?.ifBlank { null }, lastAirDate = ended?.ifBlank { null },
@@ -54,4 +60,5 @@ internal fun TvmShowDto.toDetail(eps: List<TvmEpisodeDto>) = TmdbDetail(
     crew = emptyList(), releases = emptyList(), seasons = seasonsOf(eps),
     externalIds = ExternalIds(imdb = externals?.imdb?.ifBlank { null }, tvdb = externals?.thetvdb),
     sourceUrl = url?.takeIf { it.startsWith("https://www.tvmaze.com/") },
+    nextEpisode = nextEpisodeOf(eps, today),
 )

@@ -24,17 +24,23 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import skywa1ker404.flickdocket.R
+import kotlinx.coroutines.launch
 import skywa1ker404.flickdocket.domain.*
 import skywa1ker404.flickdocket.ui.components.*
 import skywa1ker404.flickdocket.ui.screens.add.AddTitleSheet
 
 @Composable
-fun LibraryScreen(vm: LibraryViewModel, scopes: SharedScopes, onOpen: (Long) -> Unit) {
+fun LibraryScreen(vm: LibraryViewModel, scopes: SharedScopes, onOpen: (LibraryItem) -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     var showAdd by rememberSaveable { mutableStateOf(false) }
     var showFilters by rememberSaveable { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val advancedMsg = stringResource(R.string.progress_advanced)
+    val undoLabel = stringResource(R.string.undo)
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             ExtendedFloatingActionButton(onClick = { showAdd = true }, icon = { Icon(Icons.Rounded.Add, null) }, text = { Text(stringResource(R.string.add_title)) })
         },
@@ -64,7 +70,15 @@ fun LibraryScreen(vm: LibraryViewModel, scopes: SharedScopes, onOpen: (Long) -> 
                         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader(stringResource(R.string.nav_library)) }
-                        items(s.items, key = { it.titleId }) { PosterCard(it, { onOpen(it.titleId) }, scopes) }
+                        items(s.items, key = { it.titleId }) { item ->
+                            PosterCard(item, { onOpen(item) }, scopes, onAdvance = {
+                                vm.advance(item)
+                                scope.launch {
+                                    snackbar.currentSnackbarData?.dismiss()
+                                    if (snackbar.showSnackbar("$advancedMsg: ${item.title}", undoLabel, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) vm.undoAdvance(item.titleId)
+                                }
+                            })
+                        }
                     }
                 }
             }

@@ -36,7 +36,11 @@ class RoomLibraryRepository(
     private val externalIds = db.externalIdDao()
 
     override fun observeLibrary() = library.observeLibrary().map { rows ->
-        rows.map { LibraryItem(it.titleId, it.title, it.mediaType, it.year, it.posterPath, it.status, it.rating, it.favorite, it.watchCount, it.totalEpisodes, it.updatedAt) }
+        rows.map { LibraryItem(
+            it.titleId, it.title, it.mediaType, it.year, it.posterPath, it.status, it.rating, it.favorite, it.watchCount, it.totalEpisodes, it.updatedAt,
+            remoteRef = it.tmdbId?.let { id -> TmdbRef(it.mediaType, id, RefSource.TMDB) }
+                ?: it.tvmazeId?.toLongOrNull()?.let { id -> TmdbRef(it.mediaType, id, RefSource.TVMAZE) },
+        ) }
     }
 
     override fun observeDetail(titleId: Long): Flow<TitleDetail?> =

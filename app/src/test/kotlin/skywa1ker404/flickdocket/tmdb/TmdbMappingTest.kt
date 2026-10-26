@@ -107,4 +107,13 @@ class TmdbMappingTest {
         assertEquals(listOf("w200", "original"), c.posterSizes)
         assertEquals(ImageConfig().backdropSizes, c.backdropSizes)
     }
+
+    @Test fun nextEpisodeMappedForTvOnly() {
+        val body = """{"id":9,"name":"S","next_episode_to_air":{"air_date":"2027-01-05","season_number":2,"episode_number":3,"name":"Third"}}"""
+        val tv = json.decodeFromString<DetailDto>(body).toDetail(MediaType.TV, "US")
+        assertEquals(NextEpisode(2, 3, "Third", "2027-01-05"), tv.nextEpisode)
+        assertNull(json.decodeFromString<DetailDto>(body).toDetail(MediaType.MOVIE, "US").nextEpisode)
+        val none = json.decodeFromString<DetailDto>("""{"id":9,"name":"S","next_episode_to_air":{"air_date":""}}""").toDetail(MediaType.TV, "US")
+        assertNull(none.nextEpisode)
+    }
 }

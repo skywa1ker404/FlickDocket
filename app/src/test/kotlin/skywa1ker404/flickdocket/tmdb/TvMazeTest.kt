@@ -146,4 +146,13 @@ class TvMazeTest {
         s.detail(TmdbRef(MediaType.TV, 1, RefSource.TMDB)); assertEquals(listOf("search", "detail"), tmdb.seen)
         s.clearCache(); assertTrue("clear" in open.seen && "clear" in tmdb.seen)
     }
+
+    @Test fun nextEpisodeIsEarliestOnOrAfterToday() {
+        val eps = json.decodeFromString(ListSerializer(TvmEpisodeDto.serializer()), episodes)
+        val next = nextEpisodeOf(eps, "2012-04-02")!!
+        assertEquals("2012-04-08", next.airDate)
+        assertEquals(1, next.season); assertEquals(2, next.number)
+        assertNull(nextEpisodeOf(eps, "2014-01-01"))
+        assertEquals("2013-04-01", nextEpisodeOf(eps, "2013-04-01")!!.airDate)
+    }
 }

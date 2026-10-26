@@ -4,6 +4,7 @@ package skywa1ker404.flickdocket.ui.navigation
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
@@ -70,7 +71,9 @@ fun AppNav(container: AppContainer, settings: AppSettings) {
     fun enter(): EnterTransition = if (reduced) EnterTransition.None else fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 24 }
     fun exit(): ExitTransition = if (reduced) ExitTransition.None else fadeOut(tween(160))
 
+    // Each screen handles its own top inset; the outer scaffold only hosts the bottom bar. Without this the status bar inset was applied twice.
     CompositionLocalProvider(LocalImageConfig provides imageConfig) { Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             AnimatedVisibility(onTop, enter = if (reduced) EnterTransition.None else slideInVertically { it }, exit = if (reduced) ExitTransition.None else slideOutVertically { it }) {
                 NavigationBar {
@@ -96,7 +99,11 @@ fun AppNav(container: AppContainer, settings: AppSettings) {
             NavHost(nav, startDestination = TopDest.Library.route, modifier = Modifier.padding(padding),
                 enterTransition = { enter() }, exitTransition = { exit() }, popEnterTransition = { enter() }, popExitTransition = { exit() }) {
                 composable(TopDest.Library.route) {
-                    LibraryScreen(viewModel(factory = factory), SharedScopes(this@SharedTransitionLayout, this@composable)) { nav.navigate("$DETAIL/$it") }
+                    LibraryScreen(viewModel(factory = factory), SharedScopes(this@SharedTransitionLayout, this@composable)) { item ->
+                        // Linked titles open the full details page (cast, seasons, next episode); hand-added ones open their record.
+                        val r = item.remoteRef
+                        nav.navigate(if (r != null) "$TMDB/${r.source.name}/${r.type.name}/${r.id}" else "$DETAIL/${item.titleId}")
+                    }
                 }
                 composable(TopDest.Discover.route) {
                     DiscoverScreen(

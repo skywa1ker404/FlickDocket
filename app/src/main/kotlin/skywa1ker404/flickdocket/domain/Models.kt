@@ -23,6 +23,8 @@ data class LibraryItem(
     val watchCount: Int,
     val totalEpisodes: Int?,
     val updatedAt: Long,
+    /** Set when the title was added from TMDB/TVmaze, so its full details can be opened. */
+    val remoteRef: TmdbRef? = null,
 )
 
 data class TitleDetail(

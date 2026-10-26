@@ -21,6 +21,8 @@ data class LibraryRow(
     val favorite: Boolean,
     val updatedAt: Long,
     val watchCount: Int,
+    val tmdbId: Long?,
+    val tvmazeId: String?,
 )
 
 data class StatusCount(val status: WatchStatus, val count: Int)
@@ -65,7 +67,9 @@ interface LibraryDao {
         """SELECT t.id AS titleId, t.name AS title, t.mediaType AS mediaType, t.releaseYear AS year,
            t.posterPath AS posterPath, t.totalEpisodes AS totalEpisodes, e.status AS status, e.rating AS rating,
            e.favorite AS favorite, e.updatedAt AS updatedAt,
-           (SELECT COUNT(*) FROM watch_events w WHERE w.titleId = t.id) AS watchCount
+           (SELECT COUNT(*) FROM watch_events w WHERE w.titleId = t.id) AS watchCount,
+           t.tmdbId AS tmdbId,
+           (SELECT x.externalId FROM external_ids x WHERE x.titleId = t.id AND x.provider = 'tvmaze' LIMIT 1) AS tvmazeId
            FROM titles t INNER JOIN library_entries e ON e.titleId = t.id"""
     )
     fun observeLibrary(): Flow<List<LibraryRow>>

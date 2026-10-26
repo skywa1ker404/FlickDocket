@@ -1,7 +1,7 @@
 # TODOList
 
 Legend: `[x]` done and verified · `[~]` written, **not yet verified by CI/device** · `[ ]` planned. Nothing is marked `[x]` unless it was actually verified.
-Last updated: 2026-10-25 (branch `foundation/phase-0`). Last green CI run: 40155464209 (compile, 18 unit tests, assembleDebug, lintDebug).
+Last updated: 2026-10-26 (branch `phase-3/sources-tracking`). Last green CI run: 40155464209 (compile, 18 unit tests, assembleDebug, lintDebug).
 
 ## Bugs (fixed before features)
 - [x] README title said "Stillword" (wrong project) → rewritten as FlickDocket.
@@ -47,6 +47,14 @@ Last updated: 2026-10-25 (branch `foundation/phase-0`). Last green CI run: 40155
 - [ ] Migration test needs the committed v1/v2 schema JSON (app/schemas is not committed yet)
 - [ ] Refresh stored metadata for library titles; per-episode watch tracking from fetched episodes
 - [ ] Emulator CI job to run instrumented tests; on-device checks
+## Phase 2b — Selectable metadata source & library details (branch `phase-3/sources-tracking`, awaiting CI)
+- [~] Settings switch: keyless TVmaze (TV only, CC BY-SA 4.0 attribution) or optional TMDB (key section shown only when TMDB is selected); TVmaze response schema is unverified against live data.
+- [~] Library cards open the same full details page as Discover (cast, seasons, next episode); stored data is shown when the source is offline.
+- [~] Next-episode air date (TMDB `next_episode_to_air`, TVmaze earliest upcoming airdate); "+" on cards and details page advances progress, with Undo that restores the previous status; progress bar and "n / total" on cards.
+- [~] Layout: removed the doubled status-bar inset, constrained title width on the details header, reserved two title lines on cards so tiles align; not checked on a device.
+- [ ] "Ready to watch / Waiting" grouping and "N behind" badge need per-episode air data (planned with the tracking overhaul).
+- Cinemeta is **not** integrated: its terms and the project rules (no addons/streaming ecosystem, verified licensed data only) rule it out. Alternatives: TVmaze for TV + TMDB for movies, manual movie entry, or a Wikidata check after reading its terms.
+- Design references (AniSync screenshots) inform layout principles only; no branding, names or artwork are copied.
 ## Phase 3 — Serializd import
 - [ ] Obtain a real export sample; parser + preview + undo
 ## Phase 4 — Trakt & Simkl

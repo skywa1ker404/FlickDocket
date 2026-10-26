@@ -61,6 +61,7 @@ internal fun DetailDto.toDetail(type: MediaType, region: String): TmdbDetail {
         rating = voteAverage?.takeIf { it > 0 }?.toFloat(),
         certification = cert, cast = cast, crew = crew, releases = if (isMovie) releases else emptyList(),
         seasons = if (isMovie) emptyList() else seasonList,
+        nextEpisode = if (isMovie) null else nextEpisodeToAir?.let { n -> n.airDate?.ifBlank { null }?.let { date -> NextEpisode(n.seasonNumber, n.episodeNumber, n.name?.ifBlank { null }, date) } },
         externalIds = ExternalIds(
             imdb = (externalIds?.imdbId ?: imdbId)?.ifBlank { null },
             tvdb = externalIds?.tvdbId, wikidata = externalIds?.wikidataId?.ifBlank { null },

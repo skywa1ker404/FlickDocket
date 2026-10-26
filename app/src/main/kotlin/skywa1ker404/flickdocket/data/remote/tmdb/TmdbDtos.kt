@@ -42,6 +42,13 @@ import kotlinx.serialization.Serializable
     @SerialName("poster_path") val posterPath: String? = null,
 )
 
+@Serializable data class NextEpisodeDto(
+    @SerialName("air_date") val airDate: String? = null,
+    @SerialName("season_number") val seasonNumber: Int = 0,
+    @SerialName("episode_number") val episodeNumber: Int? = null,
+    val name: String? = null,
+)
+
 @Serializable data class DetailDto(
     val id: Long,
     val title: String? = null, val name: String? = null, val tagline: String? = null, val overview: String? = null,
@@ -57,6 +64,7 @@ import kotlinx.serialization.Serializable
     val status: String? = null,
     @SerialName("vote_average") val voteAverage: Double? = null,
     val genres: List<GenreDto> = emptyList(),
+    @SerialName("next_episode_to_air") val nextEpisodeToAir: NextEpisodeDto? = null,
     val seasons: List<SeasonSummaryDto> = emptyList(),
     val credits: CreditsDto? = null,
     @SerialName("external_ids") val externalIds: ExternalIdsDto? = null,

@@ -38,6 +38,15 @@ object LibraryRules {
     fun snapRating(raw: Int): Int = ((raw.coerceIn(0, RATING_MAX) + RATING_STEP / 2) / RATING_STEP) * RATING_STEP
 }
 
+object ProgressRules {
+    /** The quick "+" action is offered for TV, and for movies not yet marked watched. */
+    fun canAdvance(type: MediaType, status: WatchStatus, watched: Int, total: Int?): Boolean = when (type) {
+        MediaType.MOVIE -> watched == 0
+        MediaType.TV -> status != WatchStatus.COMPLETED || (total != null && watched < total)
+    }
+    fun fraction(watched: Int, total: Int?): Float? = total?.takeIf { it > 0 }?.let { (watched.toFloat() / it).coerceIn(0f, 1f) }
+}
+
 sealed interface DraftIssue {
     data object NameBlank : DraftIssue
     data object NameTooLong : DraftIssue

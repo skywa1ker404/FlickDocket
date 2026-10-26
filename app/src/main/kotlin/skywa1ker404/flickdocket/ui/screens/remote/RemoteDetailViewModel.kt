@@ -32,6 +32,24 @@ class RemoteDetailViewModel(private val metadata: MetadataRepository, private va
     val libraryId: StateFlow<Long?> = ref.flatMapLatest { r -> if (r == null) flowOf(null) else library.observeLibraryId(r) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** Local record for this title when tracked: status and watched-episode progress. Works offline. */
+    val entry: StateFlow<TitleDetail?> = libraryId.flatMapLatest { id -> if (id == null) flowOf(null) else library.observeDetail(id) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    private var statusBeforeAdvance: WatchStatus? = null
+
+    fun advance() {
+        val e = entry.value ?: return
+        statusBeforeAdvance = e.status
+        viewModelScope.launch { library.addWatch(e.titleId) }
+    }
+    fun undoAdvance() {
+        val e = entry.value ?: return
+        val prior = statusBeforeAdvance.also { statusBeforeAdvance = null }
+        viewModelScope.launch { library.undoLastWatch(e.titleId); if (prior != null) library.setStatus(e.titleId, prior) }
+    }
+    fun removeLastWatch() { val e = entry.value ?: return; statusBeforeAdvance = null; viewModelScope.launch { library.undoLastWatch(e.titleId) } }
+    fun setStatus(status: WatchStatus) { val e = entry.value ?: return; viewModelScope.launch { library.setStatus(e.titleId, status) } }
+
     fun load(r: TmdbRef, force: Boolean = false) {
         if (!force && ref.value == r) return
         ref.value = r

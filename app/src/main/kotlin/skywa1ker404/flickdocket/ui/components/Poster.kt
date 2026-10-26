@@ -10,6 +10,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,6 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import skywa1ker404.flickdocket.domain.LibraryItem
+import skywa1ker404.flickdocket.domain.MediaType
+import skywa1ker404.flickdocket.domain.ProgressRules
 import skywa1ker404.flickdocket.domain.WatchStatus
 import skywa1ker404.flickdocket.ui.theme.LocalReducedMotion
 import skywa1ker404.flickdocket.ui.theme.spatialSpec
@@ -68,35 +72,65 @@ fun PosterArt(title: String, modifier: Modifier = Modifier, corner: androidx.com
     }
 }
 
-/** Poster + title + subtitle. [status] is optional so the same tile serves the library and TMDB results. */
+/**
+ * Poster + title + one info line. Status sits top-start and the quick "+" bottom-end, so nothing shares a row and
+ * nothing is clipped on narrow tiles. When [progressText] is set a bar replaces the subtitle line.
+ */
 @Composable
 fun PosterTile(
     title: String, subtitle: String, posterPath: String?, status: WatchStatus?,
     onClick: () -> Unit, scopes: SharedScopes?, sharedKey: String?, modifier: Modifier = Modifier,
+    progressText: String? = null, progressFraction: Float? = null, onAdvance: (() -> Unit)? = null,
 ) {
-    val description = if (status != null) "$title, ${statusLabel(status)}" else title
+    val description = listOfNotNull(title, status?.let { statusLabel(it) }, progressText).joinToString(", ")
     val openLabel = stringResource(R.string.open_details)
     Column(
         modifier
             .clip(RoundedCornerShape(20.dp))
-            .semantics(mergeDescendants = true) { contentDescription = description }
-            .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onClick),
+            .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = description },
     ) {
         Box {
             val art = Modifier.fillMaxWidth().aspectRatio(2f / 3f)
             PosterImage(posterPath, title, if (sharedKey != null) art.posterSharedElement(sharedKey, scopes) else art)
-            if (status != null) StatusPill(status, Modifier.align(Alignment.BottomStart).padding(8.dp))
+            if (status != null) StatusPill(status, Modifier.align(Alignment.TopStart).padding(8.dp))
+            if (onAdvance != null) {
+                FilledIconButton(onAdvance, Modifier.align(Alignment.BottomEnd).padding(8.dp).size(44.dp)) {
+                    Icon(Icons.Rounded.Add, stringResource(R.string.advance_progress, title))
+                }
+            }
         }
         Spacer(Modifier.height(8.dp))
-        Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            title, Modifier.padding(horizontal = 2.dp), style = MaterialTheme.typography.titleSmall,
+            minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(2.dp))
+        if (progressText != null) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (progressFraction != null) {
+                    LinearProgressIndicator({ progressFraction }, Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(50)))
+                    Spacer(Modifier.width(8.dp))
+                } else Spacer(Modifier.weight(1f))
+                Text(progressText, style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false)
+            }
+        } else if (subtitle.isNotBlank()) {
+            Text(subtitle, Modifier.padding(horizontal = 2.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }
 
 @Composable
-fun PosterCard(item: LibraryItem, onClick: () -> Unit, scopes: SharedScopes?, modifier: Modifier = Modifier) {
+fun PosterCard(item: LibraryItem, onClick: () -> Unit, scopes: SharedScopes?, onAdvance: (() -> Unit)?, modifier: Modifier = Modifier) {
+    val total = item.totalEpisodes
+    val tvStarted = item.mediaType == MediaType.TV && item.watchCount > 0
     PosterTile(
-        item.title, listOfNotNull(item.year?.toString(), item.rating?.let { "★ %.1f".format(it / 10f) }).joinToString(" · "),
-        item.posterPath, item.status, onClick, scopes, posterKey(item.titleId), modifier,
+        item.title,
+        listOfNotNull(mediaTypeLabel(item.mediaType), item.year?.toString(), item.rating?.let { "★ %.1f".format(it / 10f) }).joinToString(" · "),
+        item.posterPath, item.status, onClick, scopes,
+        item.remoteRef?.let { skywa1ker404.flickdocket.ui.screens.discover.tmdbPosterKey(it) } ?: posterKey(item.titleId), modifier,
+        progressText = if (tvStarted) (if (total != null && total > 0) "${item.watchCount.coerceAtMost(total)} / $total" else "${item.watchCount} eps") else null,
+        progressFraction = if (tvStarted) ProgressRules.fraction(item.watchCount, total) else null,
+        onAdvance = onAdvance.takeIf { ProgressRules.canAdvance(item.mediaType, item.status, item.watchCount, total) },
     )
 }

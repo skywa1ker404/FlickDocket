@@ -35,6 +35,8 @@ data class SeasonSummary(val number: Int, val name: String?, val episodeCount: I
 data class EpisodeInfo(val number: Int, val name: String?, val overview: String?, val airDate: String?, val runtimeMinutes: Int?, val stillPath: String?)
 data class SeasonDetail(val number: Int, val name: String?, val overview: String?, val episodes: List<EpisodeInfo>)
 
+data class NextEpisode(val season: Int, val number: Int?, val name: String?, val airDate: String)
+
 data class ExternalIds(val imdb: String? = null, val tvdb: Long? = null, val wikidata: String? = null)
 
 data class TmdbDetail(
@@ -46,6 +48,17 @@ data class TmdbDetail(
     val seasons: List<SeasonSummary>, val externalIds: ExternalIds,
     /** Link back to the source page, required for attribution by some sources. */
     val sourceUrl: String? = null,
+    /** Next unaired episode, when the source knows one. */
+    val nextEpisode: NextEpisode? = null,
+)
+
+/** Minimal detail built from the local record, so a tracked title still opens when the source is unreachable. */
+fun TitleDetail.toOfflineDetail(ref: TmdbRef) = TmdbDetail(
+    ref = ref, title = title, tagline = null, overview = overview, posterPath = posterPath, backdropPath = backdropPath,
+    year = year, firstAirDate = null, lastAirDate = null, runtimeMinutes = runtimeMinutes, totalEpisodes = totalEpisodes,
+    seasonCount = null, status = null, genres = emptyList(), rating = null, certification = null,
+    cast = emptyList(), crew = emptyList(), releases = emptyList(), seasons = emptyList(),
+    externalIds = ExternalIds(imdb = imdbId),
 )
 
 sealed interface MetadataError {

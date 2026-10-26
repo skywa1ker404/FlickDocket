@@ -52,7 +52,7 @@ fun DiscoverScreen(vm: DiscoverViewModel, scopes: SharedScopes, onOpen: (TmdbRef
 }
 
 @Composable
-private fun Results(ui: DiscoverUi, vm: DiscoverViewModel, scopes: SharedScopes, onOpen: (MediaType, Long) -> Unit) {
+private fun Results(ui: DiscoverUi, vm: DiscoverViewModel, scopes: SharedScopes, onOpen: (TmdbRef) -> Unit) {
     val state = rememberLazyGridState()
     val nearEnd by remember {
         derivedStateOf {

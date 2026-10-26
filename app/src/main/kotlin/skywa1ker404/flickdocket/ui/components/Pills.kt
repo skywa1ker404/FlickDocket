@@ -71,8 +71,11 @@ fun SelectPill(label: String, selected: Boolean, onClick: () -> Unit, modifier: 
 }
 
 @Composable
-fun <T> PillRow(options: List<T>, selected: (T) -> Boolean, label: @Composable (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
-    LazyRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(horizontal = 16.dp)) {
+fun <T> PillRow(
+    options: List<T>, selected: (T) -> Boolean, label: @Composable (T) -> String, onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier, contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
+) {
+    LazyRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = contentPadding) {
         items(options) { o -> SelectPill(label(o), selected(o), { onSelect(o) }) }
     }
 }
