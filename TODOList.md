@@ -53,7 +53,12 @@ Last updated: 2026-10-26 (branch `phase-3/sources-tracking`). Last green CI run:
 - [~] Next-episode air date (TMDB `next_episode_to_air`, TVmaze earliest upcoming airdate); "+" on cards and details page advances progress, with Undo that restores the previous status; progress bar and "n / total" on cards.
 - [~] Layout: removed the doubled status-bar inset, constrained title width on the details header, reserved two title lines on cards so tiles align; not checked on a device.
 - [ ] "Ready to watch / Waiting" grouping and "N behind" badge need per-episode air data (planned with the tracking overhaul).
-- Cinemeta is **not** integrated: its terms and the project rules (no addons/streaming ecosystem, verified licensed data only) rule it out. Alternatives: TVmaze for TV + TMDB for movies, manual movie entry, or a Wikidata check after reading its terms.
+- [~] Default no-setup source = Cinemeta (movies + TV, IMDb ids) with TVmaze as TV fallback; TMDB optional (key section only when TMDB is selected). Requested by the owner on 2026-10-26.
+  - Verified live 2026-10-26: `manifest.json`, `meta/{movie|series}/{imdb}.json`, `catalog/{type}/top/search=...json`, `catalog/{type}/top/skip=0.json` (302 to `cinemeta-catalogs.strem.io`).
+  - **Terms unverified:** Cinemeta publishes no terms or licence for third-party apps (manifest has none; GitHub page unreachable from CI sandbox). Mitigations: rate limit 5/s, caching, "unofficial source" disclosure in Settings, attribution, image hosts restricted to `images.metahub.space` / `episodes.metahub.space`, TMDB switch. Revisit if Stremio publishes terms or objects.
+  - IMDb ratings in the payload are deliberately **not** shown (no licensed access); only IMDb ids are used.
+  - Only page 1 of catalogues is used (page size undocumented); no anime filter on text search (search items carry no genre).
+  - Schema is checked only against invented fixtures shaped like the observed responses.
 - Design references (AniSync screenshots) inform layout principles only; no branding, names or artwork are copied.
 ## Phase 3 — Serializd import
 - [ ] Obtain a real export sample; parser + preview + undo

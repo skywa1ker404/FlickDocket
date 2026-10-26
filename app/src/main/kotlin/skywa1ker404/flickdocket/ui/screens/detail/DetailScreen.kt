@@ -110,7 +110,12 @@ private fun Overview(d: TitleDetail, vm: DetailViewModel) {
         Box(pad) { WatchControls(d, vm) }
         Box(pad) { RatingControl(d.rating, vm::setRating) }
         Column(pad) { NotesEditor(d.notes, vm::saveNotes) }
-        Text(stringResource(R.string.source_manual).takeIf { d.source == MetadataSource.MANUAL } ?: stringResource(R.string.source_tmdb),
+        Text(stringResource(when (d.source) {
+            MetadataSource.MANUAL -> R.string.source_manual
+            MetadataSource.TMDB -> R.string.source_tmdb
+            MetadataSource.TVMAZE -> R.string.source_tvmaze
+            MetadataSource.CINEMETA -> R.string.source_cinemeta
+        }),
             pad, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

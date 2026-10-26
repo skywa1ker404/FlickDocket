@@ -172,11 +172,15 @@
     <string name="tmdb_state_rate_limited">Rate limited. Try again shortly</string>
     <string name="err_unsupported">This source can\'t provide that</string>
     <string name="discover_on_tv">On TV today</string>
+    <string name="discover_popular">Popular</string>
     <string name="tvmaze_attribution">TV data and images from TVmaze (tvmaze.com), licensed CC BY-SA 4.0. FlickDocket is not endorsed by TVmaze.</string>
+    <string name="cinemeta_attribution">Movie and TV data from Cinemeta, the public catalogue behind Stremio, and artwork from its image host. FlickDocket is not affiliated with or endorsed by Stremio, Cinemeta or IMDb.</string>
+    <string name="source_cinemeta">Metadata from Cinemeta</string>
+    <string name="source_tvmaze">Metadata from TVmaze</string>
     <string name="view_on_tvmaze">View on TVmaze</string>
     <string name="source_heading">Metadata source</string>
-    <string name="source_open">No setup (TVmaze)</string>
+    <string name="source_open">No setup (Cinemeta + TVmaze)</string>
     <string name="source_tmdb_option">TMDB</string>
-    <string name="source_open_body">Works immediately with no account or key. TV shows only: search, today\'s schedule, cast, seasons, specials and IMDb ids (you can also search by an IMDb id like tt0903747). Movies can still be added by hand.</string>
+    <string name="source_open_body">Works immediately with no account or key. Movies and TV from the public Cinemeta catalogue, with TVmaze as the TV fallback; titles are matched by IMDb id (you can search tt0133093). Cinemeta is an unofficial source for third-party apps and may change or stop; switch to TMDB any time. IMDb ratings are not shown.</string>
     <string name="source_tmdb_body">Movies and TV with posters, backdrops, crew and release dates. Needs your own free TMDB key, entered below.</string>
 </resources>

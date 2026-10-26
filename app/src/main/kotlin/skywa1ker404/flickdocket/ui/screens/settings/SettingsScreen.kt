@@ -61,6 +61,7 @@ fun SettingsScreen(vm: SettingsViewModel, settings: AppSettings) {
         SectionHeader(stringResource(R.string.about))
         ListItem(headlineContent = { Text(stringResource(R.string.app_name)) }, supportingContent = { Text(stringResource(R.string.about_body)) })
         TmdbAttribution()
+        SourceAttribution(RefSource.CINEMETA)
         SourceAttribution(RefSource.TVMAZE)
     }
 }

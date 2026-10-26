@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.first
 import skywa1ker404.flickdocket.data.remote.tmdb.RateLimiter
 import skywa1ker404.flickdocket.data.remote.tmdb.TmdbClient
 import skywa1ker404.flickdocket.data.remote.tvmaze.TvMazeMetadataRepository
+import skywa1ker404.flickdocket.data.remote.cinemeta.CinemetaMetadataRepository
+import skywa1ker404.flickdocket.data.repo.OpenMetadataRepository
 import skywa1ker404.flickdocket.data.repo.SwitchingMetadataRepository
 import skywa1ker404.flickdocket.data.repo.LibraryRepository
 import skywa1ker404.flickdocket.data.repo.MetadataRepository
@@ -55,11 +57,22 @@ class AppContainer(context: Context) {
             baseUrl = "https://api.tvmaze.com/", requiresKey = false, sendLanguage = false, cachePrefix = "tvmaze:",
         )
     }
+    private val cinemetaClient by lazy {
+        TmdbClient(
+            http = httpClient, keyProvider = { null }, cache = responseCache,
+            // No published limit; stay polite at a few requests per second.
+            limiter = RateLimiter(maxRequests = 5, windowMs = 1_000),
+            baseUrl = "https://v3-cinemeta.strem.io/", requiresKey = false, sendLanguage = false, cachePrefix = "cinemeta:",
+        )
+    }
     val metadataRepository: MetadataRepository by lazy {
         SwitchingMetadataRepository(
             mode = { settingsStore.settings.first().metadataMode },
             tmdb = TmdbMetadataRepository(tmdbClient, responseCache, imageConfig, ::region),
-            open = TvMazeMetadataRepository(tvMazeClient, responseCache, ::region),
+            open = OpenMetadataRepository(
+                cinemeta = CinemetaMetadataRepository(cinemetaClient, responseCache),
+                tvmaze = TvMazeMetadataRepository(tvMazeClient, responseCache, ::region),
+            ),
         )
     }
 }

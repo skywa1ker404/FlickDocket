@@ -69,7 +69,7 @@ private fun Results(ui: DiscoverUi, vm: DiscoverViewModel, scopes: SharedScopes,
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column {
-                SectionHeader(stringResource(if (ui.query.isNotBlank()) R.string.discover_results else if (ui.mode == MetadataMode.TMDB) R.string.discover_trending else R.string.discover_on_tv))
+                SectionHeader(stringResource(if (ui.query.isNotBlank()) R.string.discover_results else if (ui.mode == MetadataMode.TMDB) R.string.discover_trending else R.string.discover_popular))
                 if (ui.stale) Text(stringResource(R.string.stale_banner), Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelLarge)
             }
         }
@@ -83,7 +83,8 @@ private fun Results(ui: DiscoverUi, vm: DiscoverViewModel, scopes: SharedScopes,
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 if (ui.loadingMore) ShapeMorphLoader(Modifier.padding(16.dp), size = 40.dp)
                 if (ui.moreFailed) TextButton(vm::loadMore) { Text(stringResource(R.string.load_more_failed)) }
-                SourceAttribution(if (ui.mode == MetadataMode.TMDB) RefSource.TMDB else RefSource.TVMAZE)
+                SourceAttribution(if (ui.mode == MetadataMode.TMDB) RefSource.TMDB else RefSource.CINEMETA)
+                if (ui.mode == MetadataMode.OPEN) SourceAttribution(RefSource.TVMAZE)
             }
         }
     }

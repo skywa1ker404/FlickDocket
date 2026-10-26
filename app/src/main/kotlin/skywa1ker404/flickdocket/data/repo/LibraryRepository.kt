@@ -39,7 +39,8 @@ class RoomLibraryRepository(
         rows.map { LibraryItem(
             it.titleId, it.title, it.mediaType, it.year, it.posterPath, it.status, it.rating, it.favorite, it.watchCount, it.totalEpisodes, it.updatedAt,
             remoteRef = it.tmdbId?.let { id -> TmdbRef(it.mediaType, id, RefSource.TMDB) }
-                ?: it.tvmazeId?.toLongOrNull()?.let { id -> TmdbRef(it.mediaType, id, RefSource.TVMAZE) },
+                ?: it.tvmazeId?.toLongOrNull()?.let { id -> TmdbRef(it.mediaType, id, RefSource.TVMAZE) }
+                ?: it.imdbId?.let(ImdbIds::toLong)?.let { id -> TmdbRef(it.mediaType, id, RefSource.CINEMETA) },
         ) }
     }
 
@@ -71,17 +72,21 @@ class RoomLibraryRepository(
     }
 
     override suspend fun addFromTmdb(detail: TmdbDetail, status: WatchStatus): Long = db.withTransaction {
-        val tvmaze = detail.ref.source == RefSource.TVMAZE
-        val existing = (if (tvmaze) externalIds.findTitleId("tvmaze", detail.ref.id.toString()) else titles.findByTmdb(detail.ref.type, detail.ref.id)?.id)
-            ?: detail.externalIds.imdb?.let { externalIds.findTitleId("imdb", it) } // same work added from the other source
+        val src = detail.ref.source
+        val tvmaze = src == RefSource.TVMAZE
+        val existing = (when (src) {
+            RefSource.TVMAZE -> externalIds.findTitleId("tvmaze", detail.ref.id.toString())
+            RefSource.TMDB -> titles.findByTmdb(detail.ref.type, detail.ref.id)?.id
+            RefSource.CINEMETA -> null
+        }) ?: detail.externalIds.imdb?.let { externalIds.findTitleId("imdb", it) } // same work added from another source
         if (existing != null) return@withTransaction existing
         val t = now()
         val id = titles.insert(
             TitleEntity(
-                mediaType = detail.ref.type, name = detail.title, tmdbId = if (tvmaze) null else detail.ref.id, overview = detail.overview,
+                mediaType = detail.ref.type, name = detail.title, tmdbId = if (src == RefSource.TMDB) detail.ref.id else null, overview = detail.overview,
                 posterPath = detail.posterPath, backdropPath = detail.backdropPath, releaseYear = detail.year,
                 runtimeMinutes = detail.runtimeMinutes, totalEpisodes = detail.totalEpisodes,
-                source = if (tvmaze) MetadataSource.TVMAZE else MetadataSource.TMDB, createdAt = t,
+                source = when (src) { RefSource.TVMAZE -> MetadataSource.TVMAZE; RefSource.TMDB -> MetadataSource.TMDB; RefSource.CINEMETA -> MetadataSource.CINEMETA }, createdAt = t,
             )
         )
         library.upsert(LibraryEntryEntity(id, status, addedAt = t, updatedAt = t))
@@ -95,7 +100,11 @@ class RoomLibraryRepository(
     }
 
     override fun observeLibraryId(ref: TmdbRef) =
-        if (ref.source == RefSource.TVMAZE) externalIds.observeTitleId("tvmaze", ref.id.toString()) else titles.observeIdByTmdb(ref.type, ref.id)
+        when (ref.source) {
+            RefSource.TVMAZE -> externalIds.observeTitleId("tvmaze", ref.id.toString())
+            RefSource.CINEMETA -> externalIds.observeTitleId("imdb", ImdbIds.fromLong(ref.id))
+            RefSource.TMDB -> titles.observeIdByTmdb(ref.type, ref.id)
+        }
 
     private suspend fun mutate(titleId: Long, change: (LibraryEntryEntity) -> LibraryEntryEntity) {
         val e = library.getEntry(titleId) ?: return

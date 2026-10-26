@@ -43,11 +43,17 @@ fun SearchField(text: String, onText: (String) -> Unit, placeholder: String, mod
 
 @Composable
 fun SourceAttribution(source: RefSource, modifier: Modifier = Modifier) =
-    if (source == RefSource.TMDB) TmdbAttribution(modifier)
-    else Text(
-        stringResource(R.string.tvmaze_attribution), modifier.padding(16.dp),
-        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    when (source) {
+        RefSource.TMDB -> TmdbAttribution(modifier)
+        RefSource.TVMAZE -> Text(
+            stringResource(R.string.tvmaze_attribution), modifier.padding(16.dp),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        RefSource.CINEMETA -> Text(
+            stringResource(R.string.cinemeta_attribution), modifier.padding(16.dp),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 
 /** Required TMDB notice, shown in About and wherever TMDB data appears. */
 @Composable

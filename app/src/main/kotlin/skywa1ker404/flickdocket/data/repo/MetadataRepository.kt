@@ -72,6 +72,39 @@ class TmdbMetadataRepository(
 }
 
 /**
+ * No-setup source: Cinemeta (movies and TV, IMDb ids) first, TVmaze as the TV fallback when Cinemeta fails or finds nothing.
+ * Opening a title always uses the source recorded in its ref.
+ */
+class OpenMetadataRepository(
+    private val cinemeta: MetadataRepository,
+    private val tvmaze: MetadataRepository,
+) : MetadataRepository {
+    private fun forRef(ref: TmdbRef) = if (ref.source == RefSource.TVMAZE) tvmaze else cinemeta
+
+    private suspend fun listWithFallback(
+        type: MediaType, page: Int,
+        primary: suspend () -> MetadataResult<ResultPage<TmdbSummary>>,
+        fallback: suspend () -> MetadataResult<ResultPage<TmdbSummary>>,
+    ): MetadataResult<ResultPage<TmdbSummary>> {
+        val first = primary()
+        if (type != MediaType.TV || page != 1) return first
+        val needFallback = first is MetadataResult.Failure || (first is MetadataResult.Ok && first.value.items.isEmpty())
+        if (!needFallback) return first
+        val second = fallback()
+        return if (second is MetadataResult.Ok && (second.value.items.isNotEmpty() || first is MetadataResult.Failure)) second else first
+    }
+
+    override suspend fun trending(type: MediaType, page: Int) =
+        listWithFallback(type, page, { cinemeta.trending(type, page) }, { tvmaze.trending(type, page) })
+    override suspend fun search(type: MediaType, query: String, page: Int) =
+        listWithFallback(type, page, { cinemeta.search(type, query, page) }, { tvmaze.search(type, query, page) })
+    override suspend fun detail(ref: TmdbRef) = forRef(ref).detail(ref)
+    override suspend fun season(ref: TmdbRef, number: Int) = forRef(ref).season(ref, number)
+    override suspend fun verifyKey(force: Boolean): MetadataResult<Unit> = MetadataResult.Ok(Unit)
+    override suspend fun clearCache() { cinemeta.clearCache(); tvmaze.clearCache() }
+}
+
+/**
  * Routes calls to the selected source. Opening a title uses the source recorded in its ref, so titles added
  * from one source stay reachable after the user switches the other on.
  */
@@ -81,7 +114,7 @@ class SwitchingMetadataRepository(
     private val open: MetadataRepository,
 ) : MetadataRepository {
     private suspend fun active() = if (mode() == MetadataMode.TMDB) tmdb else open
-    private fun forRef(ref: TmdbRef) = if (ref.source == RefSource.TVMAZE) open else tmdb
+    private fun forRef(ref: TmdbRef) = if (ref.source == RefSource.TMDB) tmdb else open
 
     override suspend fun trending(type: MediaType, page: Int) = active().trending(type, page)
     override suspend fun search(type: MediaType, query: String, page: Int) = active().search(type, query, page)

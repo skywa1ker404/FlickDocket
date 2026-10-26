@@ -1,9 +1,17 @@
 package skywa1ker404.flickdocket.domain
 
 /** Which catalogue an id belongs to. Names stay "Tmdb*" for the shared remote-title types. */
-enum class RefSource { TMDB, TVMAZE }
-/** User-selectable metadata source: OPEN needs no setup (TVmaze); TMDB needs the user's own key. */
+enum class RefSource { TMDB, TVMAZE, CINEMETA }
+/** User-selectable metadata source: OPEN needs no setup (Cinemeta + TVmaze, keyed by IMDb ids); TMDB needs the user's own key. */
 enum class MetadataMode { OPEN, TMDB }
+
+/** IMDb ids ("tt0133093") are carried as their numeric part in [TmdbRef.id] for the Cinemeta source. */
+object ImdbIds {
+    private val VALID = Regex("^tt\\d{6,10}$")
+    fun isValid(id: String?) = id != null && VALID.matches(id)
+    fun toLong(id: String): Long? = if (isValid(id)) id.substring(2).toLongOrNull() else null
+    fun fromLong(n: Long): String = "tt" + n.toString().padStart(7, '0')
+}
 
 data class TmdbRef(val type: MediaType, val id: Long, val source: RefSource = RefSource.TMDB)
 
