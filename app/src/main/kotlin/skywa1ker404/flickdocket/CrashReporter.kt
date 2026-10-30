@@ -11,9 +11,10 @@ import java.io.StringWriter
  */
 object CrashReporter {
     private const val FILE = "last-crash.txt"
+    // Bearer first: otherwise "Authorization: Bearer <token>" is redacted up to the word Bearer and the token survives.
     private val SECRETS = listOf(
-        Regex("(?i)(api_key|apikey|access_token|refresh_token|client_secret|code_verifier|authorization)([=:\\s\"]+)[^&\\s\"]+") to "$1$2[redacted]",
         Regex("(?i)bearer\\s+[A-Za-z0-9._~+/=-]+") to "Bearer [redacted]",
+        Regex("(?i)(api_key|apikey|access_token|refresh_token|client_secret|code_verifier|authorization)([=:\\s\"]+)[^&\\s\"]+") to "$1$2[redacted]",
     )
 
     fun redact(text: String): String = SECRETS.fold(text) { acc, (re, to) -> re.replace(acc, to) }
