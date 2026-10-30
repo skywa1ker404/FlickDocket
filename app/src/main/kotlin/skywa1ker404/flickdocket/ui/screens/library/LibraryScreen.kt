@@ -9,7 +9,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Search
@@ -27,13 +27,13 @@ import skywa1ker404.flickdocket.R
 import kotlinx.coroutines.launch
 import skywa1ker404.flickdocket.domain.*
 import skywa1ker404.flickdocket.ui.components.*
-import skywa1ker404.flickdocket.ui.screens.add.AddTitleSheet
 
 @Composable
-fun LibraryScreen(vm: LibraryViewModel, scopes: SharedScopes, onOpen: (LibraryItem) -> Unit) {
+fun LibraryScreen(vm: LibraryViewModel, scopes: SharedScopes, onOpenDiscover: () -> Unit, onOpen: (LibraryItem) -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
-    var showAdd by rememberSaveable { mutableStateOf(false) }
     var showFilters by rememberSaveable { mutableStateOf(false) }
+    // Only the tile that was just opened takes part in the poster transition; every tile doing so makes the grid slow.
+    var openedKey by rememberSaveable { mutableStateOf<String?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val advancedMsg = stringResource(R.string.progress_advanced)
@@ -41,9 +41,6 @@ fun LibraryScreen(vm: LibraryViewModel, scopes: SharedScopes, onOpen: (LibraryIt
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = { showAdd = true }, icon = { Icon(Icons.Rounded.Add, null) }, text = { Text(stringResource(R.string.add_title)) })
-        },
         contentWindowInsets = WindowInsets.statusBars,
     ) { inner ->
         when (val s = state) {
@@ -61,23 +58,39 @@ fun LibraryScreen(vm: LibraryViewModel, scopes: SharedScopes, onOpen: (LibraryIt
                 Spacer(Modifier.height(8.dp))
                 when {
                     s.totalCount == 0 -> EmptyState(Icons.Rounded.Movie, stringResource(R.string.empty_library_title), stringResource(R.string.empty_library_body),
-                        actionLabel = stringResource(R.string.add_title), onAction = { showAdd = true })
+                        actionLabel = stringResource(R.string.go_to_discover), onAction = onOpenDiscover)
                     s.items.isEmpty() -> EmptyState(Icons.Rounded.SearchOff, stringResource(R.string.empty_search_title), stringResource(R.string.empty_search_body),
                         shape = MaterialShapes.Sunny, actionLabel = stringResource(R.string.clear_filters), onAction = vm::clearFilters)
-                    else -> LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 120.dp),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader(stringResource(R.string.nav_library)) }
-                        items(s.items, key = { it.titleId }) { item ->
-                            PosterCard(item, { onOpen(item) }, scopes, onAdvance = {
-                                vm.advance(item)
-                                scope.launch {
-                                    snackbar.currentSnackbarData?.dismiss()
-                                    if (snackbar.showSnackbar("$advancedMsg: ${item.title}", undoLabel, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) vm.undoAdvance(item.titleId)
+                    else -> {
+                        // Group by status only for the default ordering; any other sort or a text search stays one flat, correctly ordered list.
+                        val grouped = s.query.sort == LibrarySort.RECENTLY_UPDATED && s.query.text.isBlank() && s.query.statuses.isEmpty()
+                        val groups = remember(s.items, grouped) {
+                            if (grouped) WatchStatus.entries.mapNotNull { st -> s.items.filter { it.status == st }.takeIf { it.isNotEmpty() }?.let { st to it } }
+                            else listOf<Pair<WatchStatus?, List<LibraryItem>>>(null to s.items)
+                        }
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 156.dp),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            groups.forEach { (status, list) ->
+                                item(key = "header-${status?.name ?: "all"}", span = { GridItemSpan(maxLineSpan) }, contentType = "header") {
+                                    SectionHeader(if (status == null) stringResource(R.string.nav_library) else statusLabel(status), Modifier.padding(horizontal = 0.dp), count = list.size)
                                 }
-                            })
+                                items(list, key = { it.titleId }, contentType = { "poster" }) { item ->
+                                    val key = libraryPosterKey(item)
+                                    PosterCard(
+                                        item, { openedKey = key; onOpen(item) }, scopes, key.takeIf { it == openedKey },
+                                        onAdvance = {
+                                            vm.advance(item)
+                                            scope.launch {
+                                                snackbar.currentSnackbarData?.dismiss()
+                                                if (snackbar.showSnackbar("$advancedMsg: ${item.title}", undoLabel, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) vm.undoAdvance(item.titleId)
+                                            }
+                                        },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -85,7 +98,6 @@ fun LibraryScreen(vm: LibraryViewModel, scopes: SharedScopes, onOpen: (LibraryIt
         }
     }
 
-    if (showAdd) AddTitleSheet(onDismiss = { showAdd = false }, onSave = { draft -> vm.add(draft); showAdd = false })
     if (showFilters && state is LibraryUiState.Content) {
         FilterSheet((state as LibraryUiState.Content).query, vm, onDismiss = { showFilters = false })
     }

@@ -27,17 +27,15 @@ import androidx.compose.ui.unit.dp
 import skywa1ker404.flickdocket.R
 import skywa1ker404.flickdocket.ui.theme.LocalReducedMotion
 
-/** Every Material 3 shape, morphing one into the next. Cached once; shape objects are immutable. */
+/**
+ * One shape from each Material 3 family, morphing one into the next. The indicator builds a Morph per neighbouring pair on the
+ * main thread whenever it enters composition, so the list is kept short (all 35 shapes made every loader start stutter).
+ */
 private val AllMaterialShapes by lazy {
     listOf(
-        MaterialShapes.Circle, MaterialShapes.Square, MaterialShapes.Slanted, MaterialShapes.Arch, MaterialShapes.Fan,
-        MaterialShapes.Arrow, MaterialShapes.SemiCircle, MaterialShapes.Oval, MaterialShapes.Pill, MaterialShapes.Triangle,
-        MaterialShapes.Diamond, MaterialShapes.ClamShell, MaterialShapes.Pentagon, MaterialShapes.Gem, MaterialShapes.Sunny,
-        MaterialShapes.VerySunny, MaterialShapes.Cookie4Sided, MaterialShapes.Cookie6Sided, MaterialShapes.Cookie7Sided,
-        MaterialShapes.Cookie9Sided, MaterialShapes.Cookie12Sided, MaterialShapes.Ghostish, MaterialShapes.Clover4Leaf,
-        MaterialShapes.Clover8Leaf, MaterialShapes.Burst, MaterialShapes.SoftBurst, MaterialShapes.Boom, MaterialShapes.SoftBoom,
-        MaterialShapes.Flower, MaterialShapes.Puffy, MaterialShapes.PuffyDiamond, MaterialShapes.PixelCircle,
-        MaterialShapes.PixelTriangle, MaterialShapes.Bun, MaterialShapes.Heart,
+        MaterialShapes.Circle, MaterialShapes.Square, MaterialShapes.Slanted, MaterialShapes.Arch, MaterialShapes.Pill,
+        MaterialShapes.Triangle, MaterialShapes.Diamond, MaterialShapes.Pentagon, MaterialShapes.Sunny, MaterialShapes.Cookie6Sided,
+        MaterialShapes.Cookie9Sided, MaterialShapes.Clover4Leaf, MaterialShapes.SoftBurst, MaterialShapes.Flower, MaterialShapes.Heart,
     )
 }
 

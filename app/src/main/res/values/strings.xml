@@ -12,6 +12,9 @@
     <string name="advance_progress">Mark next episode watched: %1$s</string>
     <string name="progress_advanced">Progress updated</string>
     <string name="undo">Undo</string>
+    <string name="last_crash">Last crash on this device</string>
+    <string name="last_crash_body">The app closed unexpectedly. This report is stored only here, with keys and tokens removed. Share it only if you want help fixing the problem.</string>
+    <string name="share_report">Share report</string>
     <string name="saved_offline_banner">Showing details saved on this device. The full page loads when the source is reachable.</string>
     <string name="next_episode">Next episode</string>
     <string name="next_episode_value">S%1$d · E%2$d · %3$s</string>
@@ -28,7 +31,9 @@
     <string name="nav_stats">Stats</string>
     <string name="nav_settings">Settings</string>
 
-    <string name="add_title">Add title</string>
+    <string name="go_to_discover">Open Discover</string>
+    <string name="see_all">See all</string>
+    <string name="top_pick">Top pick</string>
     <string name="search_library">Search your library</string>
     <string name="filters">Filters</string>
     <string name="clear_filters">Clear filters</string>
@@ -79,7 +84,7 @@
     <string name="delete_confirm_body">It will be removed from your library together with its watch history. This cannot be undone.</string>
 
     <string name="empty_library_title">Your library is empty</string>
-    <string name="empty_library_body">Add a movie or show to start tracking. Everything stays on this device and no account is needed.</string>
+    <string name="empty_library_body">Find movies and TV in Discover and add them here. Titles can also arrive later through import or sync. Everything stays on this device and no account is needed.</string>
     <string name="empty_search_title">Nothing matches</string>
     <string name="empty_search_body">Try a different search or clear your filters.</string>
     <string name="empty_history_title">No watches yet</string>

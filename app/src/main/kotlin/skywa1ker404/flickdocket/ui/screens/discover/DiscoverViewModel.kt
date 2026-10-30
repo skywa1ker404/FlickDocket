@@ -65,7 +65,8 @@ class DiscoverViewModel(private val repo: MetadataRepository, credentials: Crede
                 _ui.update { it.copy(phase = DiscoverPhase.Error, error = check.error) }; return
             }
         }
-        when (val r = fetch(q, t, 1)) {
+        val first = try { fetch(q, t, 1) } catch (e: kotlin.coroutines.cancellation.CancellationException) { throw e } catch (e: Exception) { MetadataResult.Failure(MetadataError.Malformed) }
+        when (val r = first) {
             is MetadataResult.Ok -> if (gen == generation) _ui.update {
                 it.copy(phase = DiscoverPhase.Content, paged = PagedItems<TmdbSummary>().append(r.value) { s -> s.ref }, stale = r.stale)
             }
@@ -82,7 +83,7 @@ class DiscoverViewModel(private val repo: MetadataRepository, credentials: Crede
         val gen = generation
         _ui.update { it.copy(loadingMore = true, moreFailed = false) }
         viewModelScope.launch {
-            val r = fetch(activeQuery, activeType, s.paged.page + 1)
+            val r = try { fetch(activeQuery, activeType, s.paged.page + 1) } catch (e: kotlin.coroutines.cancellation.CancellationException) { throw e } catch (e: Exception) { MetadataResult.Failure(MetadataError.Malformed) }
             if (gen != generation) return@launch
             when (r) {
                 is MetadataResult.Ok -> _ui.update { it.copy(paged = it.paged.append(r.value) { x -> x.ref }, loadingMore = false, stale = it.stale || r.stale) }

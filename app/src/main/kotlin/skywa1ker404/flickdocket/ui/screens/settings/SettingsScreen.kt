@@ -3,7 +3,12 @@ package skywa1ker404.flickdocket.ui.screens.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import android.content.Intent
 import android.os.Build
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import skywa1ker404.flickdocket.CrashReporter
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.getValue
@@ -60,6 +65,7 @@ fun SettingsScreen(vm: SettingsViewModel, settings: AppSettings) {
 
         SectionHeader(stringResource(R.string.about))
         ListItem(headlineContent = { Text(stringResource(R.string.app_name)) }, supportingContent = { Text(stringResource(R.string.about_body)) })
+        CrashCard()
         TmdbAttribution()
         SourceAttribution(RefSource.CINEMETA)
         SourceAttribution(RefSource.TVMAZE)
@@ -109,4 +115,24 @@ private fun themeLabel(t: ThemeMode) = when (t) {
 
 private fun motionLabel(m: MotionPreference) = when (m) {
     MotionPreference.FOLLOW_SYSTEM -> R.string.motion_system; MotionPreference.REDUCED -> R.string.motion_reduced; MotionPreference.FULL -> R.string.motion_full
+}
+
+/** Shows the last crash saved on this device, if any. Nothing is sent anywhere; sharing is the user's choice. */
+@Composable
+private fun CrashCard() {
+    val context = LocalContext.current
+    var report by remember { mutableStateOf(CrashReporter.read(context)) }
+    val text = report ?: return
+    SectionHeader(stringResource(R.string.last_crash))
+    Text(stringResource(R.string.last_crash_body), Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.bodyMedium)
+    SelectionContainer {
+        Text(text.take(1500), Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+    }
+    Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button({
+            val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+            context.startActivity(Intent.createChooser(send, null))
+        }) { Text(stringResource(R.string.share_report)) }
+        TextButton({ CrashReporter.clear(context); report = null }) { Text(stringResource(R.string.clear)) }
+    }
 }

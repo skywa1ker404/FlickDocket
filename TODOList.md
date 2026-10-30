@@ -60,6 +60,13 @@ Last updated: 2026-10-26 (branch `phase-3/sources-tracking`). Last green CI run:
   - Only page 1 of catalogues is used (page size undocumented); no anime filter on text search (search items carry no genre).
   - Schema is checked only against invented fixtures shaped like the observed responses.
 - Design references (AniSync screenshots) inform layout principles only; no branding, names or artwork are copied.
+## Phase 2c — Speed, crash, UI pass, icon (2026-10-30, awaiting CI)
+- [~] **Discover crash on load (reported):** exact cause not reproducible without a device. Most likely the Cinemeta series catalogue (every episode of every show, megabytes) overflowing the Room cursor window when read back from the cache, or an uncaught error in the load coroutine. Fixes: catalogues trimmed before caching (60 items, list fields only), cache read/write errors treated as a miss, bodies over 600k chars not cached, every parse/network failure returned as an error value, Discover coroutines guarded, new cache key prefix so old oversized rows are never read. Added a local crash report (Settings > Last crash, secrets redacted, never sent anywhere).
+- [~] **Speed:** loader morph list cut from 35 to 15 shapes (a Morph per pair is built on the main thread each time a loader appears; this deviates from "all shapes" on purpose, say if you want them all back); shared-element state only on the opened tile; stable remembered subtitles; list item content types. **Judge speed with the `optimized` APK** (R8, not debuggable): debug builds of Compose apps are several times slower. Nothing has been profiled on a device.
+- [~] Manual "Add title" removed; titles come from Discover (sync/import later). `addManual` stays in the repository for the importers.
+- [~] UI restyle after the reference screenshots (layout principles only): card tiles, accent-bar section headers with counts, hero card, library grouped by status, rail on wide windows.
+- [~] App icon: original ticket-with-check adaptive icon, with monochrome (themed) layer.
+- [~] **Updates over the previous APK:** CI builds were signed with a fresh random key each run, so Android refused to update. Debug and optimized builds now share a committed, public, test-only keystore (`app/debug.keystore`) and versionCode = CI run number. Trade-off: anyone could sign an APK that replaces a test install, so use it for testing only. Release builds will use a private key supplied by the maintainer, never committed. The first install after this needs one uninstall (the old key differs), which clears local data.
 ## Phase 3 — Serializd import
 - [ ] Obtain a real export sample; parser + preview + undo
 ## Phase 4 — Trakt & Simkl

@@ -37,5 +37,4 @@ class LibraryViewModel(private val repo: LibraryRepository) : ViewModel() {
         val prior = statusBeforeAdvance.remove(id)
         viewModelScope.launch { repo.undoLastWatch(id); if (prior != null) repo.setStatus(id, prior) }
     }
-    fun add(draft: NewTitleDraft, onAdded: (Long) -> Unit = {}) = viewModelScope.launch { onAdded(repo.addManual(draft)) }
 }

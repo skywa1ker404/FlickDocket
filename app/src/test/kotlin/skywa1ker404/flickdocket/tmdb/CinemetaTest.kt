@@ -171,4 +171,32 @@ class CinemetaTest {
         open.detail(TmdbRef(MediaType.TV, 1, RefSource.TVMAZE)); open.detail(TmdbRef(MediaType.MOVIE, 1, RefSource.CINEMETA))
         assertEquals(1, tvm.calls); assertEquals(1, cin.calls)
     }
+
+    @Test fun compactCatalogDropsEpisodesAndCapsItems() {
+        val big = """{"metas":[{"id":"tt0000123","name":"S","poster":"p","videos":[{"id":"a"},{"id":"b"}],"trailers":[1]}]}"""
+        val out = compactCatalog(big, json)
+        assertFalse(out.contains("videos")); assertFalse(out.contains("trailers")); assertTrue(out.contains("tt0000123"))
+        assertEquals("""{"metas":[]}""", compactCatalog("""{"nope":1}""", json))
+        val many = """{"metas":[""" + (1..100).joinToString(",") { """{"id":"tt${1000000 + it}","name":"N$it"}""" } + "]}"
+        assertEquals(60, json.decodeFromString<CinemetaCatalogDto>(compactCatalog(many, json)).metas.size)
+    }
+
+    @Test fun clientSurvivesBrokenCacheAndHugeBodies() = runTest {
+        val broken = object : ResponseCache {
+            override suspend fun get(key: String): CachedBody? = throw IllegalStateException("row too big for cursor window")
+            override suspend fun put(key: String, body: String, at: Long) = throw IllegalStateException("disk full")
+            override suspend fun clear() {}
+        }
+        val http = OkHttpClient.Builder().addInterceptor(Interceptor { ok(it.request(), """{"metas":[{"id":"tt0000456","name":"M"}]}""") }).build()
+        val c = TmdbClient(http, { null }, broken, baseUrl = "https://v3-cinemeta.strem.io/", requiresKey = false, sendLanguage = false)
+        val r = CinemetaMetadataRepository(c, broken).trending(MediaType.MOVIE, 1)
+        assertEquals("M", (r as MetadataResult.Ok).value.items.single().title) // cache errors are only a miss
+        val bad = c.get("x", ttlMs = 1) { error("parser blew up") }
+        assertEquals(MetadataResult.Failure(MetadataError.Malformed), bad) // any parse failure is an error value, not a crash
+    }
+
+    @Test fun crashReportsRedactSecrets() {
+        val t = skywa1ker404.flickdocket.CrashReporter.redact("GET https://api.example/3/x?api_key=abcdef0123&language=en Authorization: Bearer eyJhbGciOi.abc.def")
+        assertFalse(t.contains("abcdef0123")); assertFalse(t.contains("eyJhbGciOi")); assertTrue(t.contains("language=en"))
+    }
 }

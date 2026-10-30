@@ -80,12 +80,21 @@ fun <T> PillRow(
     }
 }
 
-/** Section title with a small morphing-family shape marker instead of a plain bar. */
+/** Section title with a rounded accent bar, an optional count and an optional trailing label (e.g. "See all"). */
 @Composable
-fun SectionHeader(title: String, modifier: Modifier = Modifier) {
-    Row(modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(12.dp).clip(MaterialShapes.Cookie4Sided.toShape()).background(MaterialTheme.colorScheme.primary))
-        Spacer(Modifier.width(10.dp))
-        Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+fun SectionHeader(title: String, modifier: Modifier = Modifier, count: Int? = null, trailing: String? = null, onTrailing: (() -> Unit)? = null) {
+    Row(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(4.dp).height(22.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.primary))
+        Spacer(Modifier.width(12.dp))
+        Text(title, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleLarge)
+        if (count != null) {
+            Spacer(Modifier.width(10.dp))
+            Text(
+                count.toString(), Modifier.clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.secondaryContainer).padding(horizontal = 10.dp, vertical = 2.dp),
+                style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        if (trailing != null && onTrailing != null) TextButton(onTrailing) { Text(trailing) }
     }
 }

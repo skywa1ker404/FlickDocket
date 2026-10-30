@@ -34,6 +34,21 @@ internal fun parseRuntime(raw: String?): Int? {
 
 internal fun CinemetaMetaDto.imdb(): String? = listOf(imdbId, id).firstOrNull { ImdbIds.isValid(it?.lowercase()) }?.lowercase()
 
+private val CATALOG_KEYS = setOf(
+    "id", "imdb_id", "name", "type", "releaseInfo", "year", "released", "genres", "genre", "country", "description", "poster", "background",
+)
+
+/**
+ * Series catalogues arrive with every episode of every show attached (megabytes). Keep only what a list needs, once, before the
+ * body is cached or parsed; oversized cached rows also exceed the database cursor window.
+ */
+internal fun compactCatalog(body: String, json: kotlinx.serialization.json.Json): String {
+    val metas = (json.parseToJsonElement(body) as? kotlinx.serialization.json.JsonObject)?.get("metas") as? JsonArray
+        ?: return """{"metas":[]}"""
+    val slim = metas.take(60).mapNotNull { (it as? kotlinx.serialization.json.JsonObject)?.let { o -> kotlinx.serialization.json.JsonObject(o.filterKeys { k -> k in CATALOG_KEYS }) } }
+    return kotlinx.serialization.json.JsonObject(mapOf("metas" to JsonArray(slim))).toString()
+}
+
 /** Only the service's own image hosts are accepted; anything else (including third-party CDNs) is dropped. */
 private fun imageOnly(url: String?, host: String) = url?.takeIf { it.startsWith(host) }
 

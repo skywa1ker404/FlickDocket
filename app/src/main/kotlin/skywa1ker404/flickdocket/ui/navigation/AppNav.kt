@@ -4,8 +4,7 @@ package skywa1ker404.flickdocket.ui.navigation
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Explore
@@ -41,6 +40,7 @@ import skywa1ker404.flickdocket.domain.MediaType
 import skywa1ker404.flickdocket.domain.RefSource
 import skywa1ker404.flickdocket.domain.TmdbRef
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import skywa1ker404.flickdocket.ui.screens.library.LibraryScreen
 import skywa1ker404.flickdocket.ui.screens.settings.SettingsScreen
@@ -68,6 +68,13 @@ fun AppNav(container: AppContainer, settings: AppSettings) {
     val route = backStack?.destination?.route
     val onTop = TopDest.entries.any { it.route == route }
 
+    fun goTop(d: TopDest) = nav.navigate(d.route) {
+        popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true; restoreState = true
+    }
+    // Phones get a bottom bar; wide windows (tablets, landscape, unfolded) get a rail so content keeps its width.
+    val wide = LocalConfiguration.current.screenWidthDp >= 600
+
     fun enter(): EnterTransition = if (reduced) EnterTransition.None else fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 24 }
     fun exit(): ExitTransition = if (reduced) ExitTransition.None else fadeOut(tween(160))
 
@@ -75,18 +82,13 @@ fun AppNav(container: AppContainer, settings: AppSettings) {
     CompositionLocalProvider(LocalImageConfig provides imageConfig) { Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            AnimatedVisibility(onTop, enter = if (reduced) EnterTransition.None else slideInVertically { it }, exit = if (reduced) ExitTransition.None else slideOutVertically { it }) {
+            if (!wide) AnimatedVisibility(onTop, enter = if (reduced) EnterTransition.None else slideInVertically { it }, exit = if (reduced) ExitTransition.None else slideOutVertically { it }) {
                 NavigationBar {
                     TopDest.entries.forEach { d ->
                         val selected = backStack?.destination?.route == d.route
                         NavigationBarItem(
                             selected = selected,
-                            onClick = {
-                                nav.navigate(d.route) {
-                                    popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true; restoreState = true
-                                }
-                            },
+                            onClick = { goTop(d) },
                             icon = { Icon(if (selected) d.selectedIcon else d.icon, contentDescription = null) },
                             label = { Text(stringResource(d.label)) },
                         )
@@ -95,11 +97,23 @@ fun AppNav(container: AppContainer, settings: AppSettings) {
             }
         },
     ) { padding ->
-        SharedTransitionLayout {
-            NavHost(nav, startDestination = TopDest.Library.route, modifier = Modifier.padding(padding),
+        Row(Modifier.padding(padding)) {
+        if (wide && onTop) NavigationRail {
+            Spacer(Modifier.weight(1f))
+            TopDest.entries.forEach { d ->
+                val selected = route == d.route
+                NavigationRailItem(selected, { goTop(d) }, { Icon(if (selected) d.selectedIcon else d.icon, null) }, label = { Text(stringResource(d.label)) })
+            }
+            Spacer(Modifier.weight(1f))
+        }
+        SharedTransitionLayout(Modifier.weight(1f)) {
+            NavHost(nav, startDestination = TopDest.Library.route,
                 enterTransition = { enter() }, exitTransition = { exit() }, popEnterTransition = { enter() }, popExitTransition = { exit() }) {
                 composable(TopDest.Library.route) {
-                    LibraryScreen(viewModel(factory = factory), SharedScopes(this@SharedTransitionLayout, this@composable)) { item ->
+                    LibraryScreen(
+                        viewModel(factory = factory), SharedScopes(this@SharedTransitionLayout, this@composable),
+                        onOpenDiscover = { goTop(TopDest.Discover) },
+                    ) { item ->
                         // Linked titles open the full details page (cast, seasons, next episode); hand-added ones open their record.
                         val r = item.remoteRef
                         nav.navigate(if (r != null) "$TMDB/${r.source.name}/${r.type.name}/${r.id}" else "$DETAIL/${item.titleId}")
@@ -129,6 +143,7 @@ fun AppNav(container: AppContainer, settings: AppSettings) {
                     DetailScreen(id, viewModel(key = "detail-$id", factory = factory), SharedScopes(this@SharedTransitionLayout, this@composable)) { nav.popBackStack() }
                 }
             }
+        }
         }
     } }
 }

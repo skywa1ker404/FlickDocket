@@ -20,7 +20,7 @@ class CinemetaMetadataRepository(
 
     override suspend fun trending(type: MediaType, page: Int): MetadataResult<ResultPage<TmdbSummary>> {
         if (page > 1) return empty(page)
-        return client.get("catalog/${seg(type)}/top/skip=0.json", emptyMap(), TTL_TRENDING) {
+        return client.get("catalog/${seg(type)}/top/skip=0.json", emptyMap(), TTL_TRENDING, prepare = { compactCatalog(it, client.json) }) {
             client.json.decodeFromString<CinemetaCatalogDto>(it).toPage(type)
         }
     }
@@ -35,7 +35,7 @@ class CinemetaMetadataRepository(
                 is MetadataResult.Failure -> if (r.error == MetadataError.NotFound) empty(1) else r
             }
         }
-        return client.get("catalog/${seg(type)}/top/search=$q.json", emptyMap(), TTL_SEARCH) {
+        return client.get("catalog/${seg(type)}/top/search=$q.json", emptyMap(), TTL_SEARCH, prepare = { compactCatalog(it, client.json) }) {
             client.json.decodeFromString<CinemetaCatalogDto>(it).toPage(type)
         }
     }

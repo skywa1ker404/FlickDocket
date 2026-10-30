@@ -5,6 +5,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Callback
+import kotlin.coroutines.cancellation.CancellationException
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -44,28 +45,42 @@ class TmdbClient(
 ) {
     val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
 
+    /**
+     * Never throws (except cancellation): cache failures count as a miss, a bad body is [MetadataError.Malformed], anything
+     * unexpected from the network layer is [MetadataError.Offline]. [prepare] runs on a fresh body before it is parsed and
+     * cached, so large payloads can be trimmed once instead of being stored and re-read whole.
+     */
     suspend fun <T> get(
         path: String,
         params: Map<String, String> = emptyMap(),
         ttlMs: Long,
         forceRefresh: Boolean = false,
+        prepare: (String) -> String = { it },
         parse: (String) -> T,
     ): MetadataResult<T> {
         val all = (if (sendLanguage) params + ("language" to language()) else params).toSortedMap()
         val cacheKey = cachePrefix + path + "?" + all.entries.joinToString("&") { "${it.key}=${it.value}" }
-        val cached = cache.get(cacheKey)
+        val cached = try { cache.get(cacheKey) } catch (e: CancellationException) { throw e } catch (e: Exception) { null }
         fun parsed(body: String, stale: Boolean): MetadataResult<T> =
-            try { MetadataResult.Ok(parse(body), stale) } catch (e: IllegalArgumentException) { MetadataResult.Failure(MetadataError.Malformed) }
+            try { MetadataResult.Ok(parse(body), stale) } catch (e: CancellationException) { throw e } catch (e: Exception) { MetadataResult.Failure(MetadataError.Malformed) }
 
         if (!forceRefresh && cached != null && now() - cached.fetchedAt < ttlMs) return parsed(cached.body, false)
 
         val key: String? = if (!requiresKey) null else (keyProvider()?.trim()?.takeIf { it.isNotEmpty() }
             ?: return if (cached != null) parsed(cached.body, true) else MetadataResult.Failure(MetadataError.MissingCredentials))
 
-        return when (val r = fetch(path, all, key)) {
-            is Fetch.Body -> parsed(r.text, false).also { if (it is MetadataResult.Ok) cache.put(cacheKey, r.text, now()) }
+        val fetched = try { fetch(path, all, key) } catch (e: CancellationException) { throw e } catch (e: Exception) { Fetch.Error(MetadataError.Offline) }
+        return when (fetched) {
+            is Fetch.Body -> {
+                val text = try { prepare(fetched.text) } catch (e: CancellationException) { throw e } catch (e: Exception) { return MetadataResult.Failure(MetadataError.Malformed) }
+                parsed(text, false).also {
+                    if (it is MetadataResult.Ok && text.length <= MAX_CACHED_CHARS) {
+                        try { cache.put(cacheKey, text, now()) } catch (e: CancellationException) { throw e } catch (e: Exception) { /* cache is an optimisation only */ }
+                    }
+                }
+            }
             is Fetch.Error ->
-                if (cached != null && r.error.isTransient) parsed(cached.body, true) else MetadataResult.Failure(r.error)
+                if (cached != null && fetched.error.isTransient) parsed(cached.body, true) else MetadataResult.Failure(fetched.error)
         }
     }
 
@@ -116,5 +131,5 @@ class TmdbClient(
         })
     }
 
-    private companion object { const val MAX_RETRIES = 2 }
+    private companion object { const val MAX_RETRIES = 2; const val MAX_CACHED_CHARS = 600_000 }
 }

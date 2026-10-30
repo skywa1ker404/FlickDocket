@@ -24,6 +24,16 @@ import skywa1ker404.flickdocket.domain.MediaType
 import skywa1ker404.flickdocket.domain.MetadataError
 import skywa1ker404.flickdocket.domain.MetadataMode
 import skywa1ker404.flickdocket.domain.TmdbRef
+import skywa1ker404.flickdocket.domain.TmdbSummary
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import skywa1ker404.flickdocket.domain.RefSource
 import skywa1ker404.flickdocket.ui.components.*
 
@@ -61,31 +71,64 @@ private fun Results(ui: DiscoverUi, vm: DiscoverViewModel, scopes: SharedScopes,
         }
     }
     LaunchedEffect(nearEnd, ui.paged.items.size) { if (nearEnd) vm.loadMore() }
+    // Only the tile that was just opened takes part in the poster transition; every tile doing so makes the grid slow.
+    var openedKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val browsing = ui.query.isBlank()
+    val hero = if (browsing) ui.paged.items.firstOrNull() else null
+    val rest = if (hero != null) ui.paged.items.drop(1) else ui.paged.items
 
     LazyVerticalGrid(
-        state = state, columns = GridCells.Adaptive(120.dp),
+        state = state, columns = GridCells.Adaptive(156.dp),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
+        if (hero != null) item(key = "hero", span = { GridItemSpan(maxLineSpan) }, contentType = "hero") {
+            val key = tmdbPosterKey(hero.ref)
+            HeroCard(hero, { openedKey = key; onOpen(hero.ref) }, scopes, key.takeIf { it == openedKey })
+        }
+        item(key = "header", span = { GridItemSpan(maxLineSpan) }, contentType = "header") {
             Column {
-                SectionHeader(stringResource(if (ui.query.isNotBlank()) R.string.discover_results else if (ui.mode == MetadataMode.TMDB) R.string.discover_trending else R.string.discover_popular))
-                if (ui.stale) Text(stringResource(R.string.stale_banner), Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelLarge)
+                SectionHeader(stringResource(if (!browsing) R.string.discover_results else if (ui.mode == MetadataMode.TMDB) R.string.discover_trending else R.string.discover_popular))
+                if (ui.stale) Text(stringResource(R.string.stale_banner), color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelLarge)
             }
         }
-        items(ui.paged.items, key = { tmdbPosterKey(it.ref) }) { s ->
-            PosterTile(
-                s.title, listOfNotNull(s.year?.toString(), s.rating?.let { "★ %.1f".format(it) }).joinToString(" · "), s.posterPath, null,
-                { onOpen(s.ref) }, scopes, tmdbPosterKey(s.ref),
-            )
+        items(rest, key = { tmdbPosterKey(it.ref) }, contentType = { "poster" }) { s ->
+            val key = tmdbPosterKey(s.ref)
+            val subtitle = remember(s.year, s.rating) { listOfNotNull(s.year?.toString(), s.rating?.let { "★ %.1f".format(it) }).joinToString(" · ") }
+            PosterTile(s.title, subtitle, s.posterPath, null, { openedKey = key; onOpen(s.ref) }, scopes, key.takeIf { it == openedKey })
         }
-        item(span = { GridItemSpan(maxLineSpan) }) {
+        item(key = "footer", span = { GridItemSpan(maxLineSpan) }, contentType = "footer") {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 if (ui.loadingMore) ShapeMorphLoader(Modifier.padding(16.dp), size = 40.dp)
                 if (ui.moreFailed) TextButton(vm::loadMore) { Text(stringResource(R.string.load_more_failed)) }
                 SourceAttribution(if (ui.mode == MetadataMode.TMDB) RefSource.TMDB else RefSource.CINEMETA)
                 if (ui.mode == MetadataMode.OPEN) SourceAttribution(RefSource.TVMAZE)
             }
+        }
+    }
+}
+
+/** Large lead card for the top result: backdrop (or poster), scrim, pill, title and one info line. */
+@Composable
+private fun HeroCard(s: TmdbSummary, onClick: () -> Unit, scopes: SharedScopes, sharedKey: String?) {
+    val shape = RoundedCornerShape(28.dp)
+    val openLabel = stringResource(R.string.open_details)
+    Box(
+        Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onClick),
+    ) {
+        if (s.backdropPath != null) BackdropImage(s.backdropPath, Modifier.fillMaxSize())
+        else PosterImage(s.posterPath, s.title, Modifier.fillMaxSize().then(if (sharedKey != null) Modifier.posterSharedElement(sharedKey, scopes) else Modifier), corner = 28.dp)
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.78f)))))
+        Text(
+            stringResource(R.string.top_pick), Modifier.align(Alignment.TopStart).padding(14.dp).clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.primaryContainer).padding(horizontal = 12.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+        Column(Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+            Text(s.title, style = MaterialTheme.typography.headlineSmall, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            val info = remember(s.year, s.rating) { listOfNotNull(s.year?.toString(), s.rating?.let { "★ %.1f".format(it) }).joinToString(" · ") }
+            if (info.isNotBlank()) Text(info, style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.85f))
         }
     }
 }

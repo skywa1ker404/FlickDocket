@@ -14,12 +14,27 @@ android {
         applicationId = "skywa1ker404.flickdocket"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        // CI run numbers keep rising, so every CI build can update the previous one. Local builds use 1.
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionName = "0.1.0-dev"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Public, test-only key (see TODOList): lets each CI build install over the last one. Releases will use a private key kept out of the repo.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore"); storePassword = "android"; keyAlias = "androiddebugkey"; keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        // Release-like (R8, no debug overhead) but test-signed: what to install when judging speed. Not a release and never published.
+        create("optimized") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

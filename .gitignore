@@ -12,3 +12,6 @@ captures/
 # Never commit provider credentials or keys
 secrets.properties
 *.token
+
+# Public test-signing key shared by debug/optimized CI builds so installs update in place. Never used for releases.
+!app/debug.keystore

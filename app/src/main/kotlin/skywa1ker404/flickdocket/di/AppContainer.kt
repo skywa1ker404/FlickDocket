@@ -62,7 +62,7 @@ class AppContainer(context: Context) {
             http = httpClient, keyProvider = { null }, cache = responseCache,
             // No published limit; stay polite at a few requests per second.
             limiter = RateLimiter(maxRequests = 5, windowMs = 1_000),
-            baseUrl = "https://v3-cinemeta.strem.io/", requiresKey = false, sendLanguage = false, cachePrefix = "cinemeta:",
+            baseUrl = "https://v3-cinemeta.strem.io/", requiresKey = false, sendLanguage = false, cachePrefix = "cinemeta2:",
         )
     }
     val metadataRepository: MetadataRepository by lazy {
